@@ -47,8 +47,10 @@ The two API test projects are separate on purpose: each web project has its own 
 - Never expose entities in the API. InputModels in, ViewModels out.
 - The owner of a posting comes from the token claim (`sub`), never from the request body or query string.
 - A posting owned by another user returns 404.
-- Invalid status transitions throw a domain exception that maps to 409.
-- Validation errors map to 400 with `ValidationProblemDetails`; other errors use `ProblemDetails`. Use a global exception handler (`IExceptionHandler`), no try/catch in controllers.
+- Domain exceptions inherit from a base `DomainException` in Core:
+  - `DomainValidationException`: invalid data that breaks an entity invariant (for example a bad salary range). Maps to 400.
+  - `InvalidStatusTransitionException`: an action not allowed in the current status (publish, close, edit or delete). Maps to 409.
+- FluentValidation errors map to 400 with `ValidationProblemDetails`; other errors use `ProblemDetails`. Use a global exception handler (`IExceptionHandler`), no try/catch in controllers.
 - No secrets in code. JWT settings come from the `Jwt` configuration section; `appsettings.Development.json` holds a clearly fake dev key. Both APIs use the same issuer, audience and key.
 - Async all the way, pass `CancellationToken`.
 
