@@ -34,6 +34,36 @@ public class JobPosting
         DateOnly closingDate,
         DateTimeOffset createdAt)
     {
+        if (createdByUserId == Guid.Empty)
+        {
+            throw new DomainValidationException("CreatedByUserId is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            throw new DomainValidationException("Title is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(department))
+        {
+            throw new DomainValidationException("Department is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            throw new DomainValidationException("Description is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(location))
+        {
+            throw new DomainValidationException("Location is required.");
+        }
+
+        if (salaryMin <= 0)
+        {
+            throw new DomainValidationException("SalaryMin must be greater than zero.");
+        }
+
         if (salaryMax < salaryMin)
         {
             throw new DomainValidationException("SalaryMax must be greater than or equal to SalaryMin.");
