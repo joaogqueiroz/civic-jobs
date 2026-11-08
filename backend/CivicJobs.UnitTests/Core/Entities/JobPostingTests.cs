@@ -10,6 +10,15 @@ public class JobPostingTests
     private static readonly DateTimeOffset Now = new(2026, 11, 8, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    [Trait("Requirement", "FR-04")]
+    public void Create_WithValidData_SetsStatusToDraft()
+    {
+        var posting = CreatePosting();
+
+        posting.Status.ShouldBe(JobPostingStatus.Draft);
+    }
+
+    [Fact]
     [Trait("Rule", "BR-04")]
     public void Create_WhenSalaryMaxIsLessThanSalaryMin_ThrowsDomainValidationException()
     {
