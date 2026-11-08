@@ -8,6 +8,7 @@ namespace CivicJobs.UnitTests.Core.Entities;
 public class JobPostingTests
 {
     private static readonly DateTimeOffset Now = new(2026, 11, 8, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateOnly Today = DateOnly.FromDateTime(Now.UtcDateTime);
 
     [Fact]
     [Trait("Requirement", "FR-04")]
@@ -105,23 +106,55 @@ public class JobPostingTests
         create.ShouldThrow<DomainValidationException>();
     }
 
+    [Fact]
+    [Trait("Rule", "BR-09")]
+    public void Create_WhenClosingDateIsInThePast_ThrowsDomainValidationException()
+    {
+        var create = () => CreatePosting(closingDate: Today.AddDays(-1));
+
+        create.ShouldThrow<DomainValidationException>();
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-09")]
+    public void Create_WhenClosingDateIsToday_CreatesPosting()
+    {
+        var posting = CreatePosting(closingDate: Today);
+
+        posting.ClosingDate.ShouldBe(Today);
+    }
+
+    [Theory]
+    [Trait("Rule", "BR-10")]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(99)]
+    public void Create_WhenEmploymentTypeIsNotDefined_ThrowsDomainValidationException(int employmentType)
+    {
+        var create = () => CreatePosting(employmentType: (EmploymentType)employmentType);
+
+        create.ShouldThrow<DomainValidationException>();
+    }
+
     private static JobPosting CreatePosting(
         Guid? createdByUserId = null,
         string title = "Park Ranger",
         string department = "Parks & Recreation",
         string description = "Patrol city parks and assist visitors.",
         string location = "Central Park District",
+        EmploymentType employmentType = EmploymentType.FullTime,
         decimal salaryMin = 50_000m,
-        decimal salaryMax = 60_000m) =>
+        decimal salaryMax = 60_000m,
+        DateOnly? closingDate = null) =>
         JobPosting.Create(
             createdByUserId: createdByUserId ?? Guid.NewGuid(),
             title: title,
             department: department,
             description: description,
             location: location,
-            employmentType: EmploymentType.FullTime,
+            employmentType: employmentType,
             salaryMin: salaryMin,
             salaryMax: salaryMax,
-            closingDate: new DateOnly(2026, 12, 31),
+            closingDate: closingDate ?? new DateOnly(2026, 12, 31),
             createdAt: Now);
 }

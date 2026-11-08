@@ -75,6 +75,8 @@ Each requirement maps to tests, so the test suite shows which rules are covered.
 | BR-06 | Status moves only Draft -> Open -> Closed; a Closed posting can't be edited or reopened | 409 |
 | BR-07 | Only Draft postings can be deleted; published postings are kept as records | 409 |
 | BR-08 | A recruiter can only access their own postings; others return 404 | 404 |
+| BR-09 | A posting can't be created with a closing date in the past (today is allowed) | 400 |
+| BR-10 | Employment type must be FullTime, PartTime or Temporary | 400 |
 
 ## 8. Non-functional requirements
 
@@ -102,6 +104,7 @@ Targets for a pilot, not measured in this exercise.
 - "A second API" in the exercise is read as a separate Identity API (register, login, authorized and anonymous endpoints). The Jobs API is fully protected and accepts the token issued by the Identity API.
 - Both APIs share one SQLite database with the `Users` and `JobPostings` tables.
 - The token is stored in `localStorage` for the demo; production would use an httpOnly cookie.
+- "Today" in date rules (BR-05, BR-09) is the current date in UTC. A multi-time-zone deployment would use the agency's local time zone.
 
 ## 11. Future work
 
