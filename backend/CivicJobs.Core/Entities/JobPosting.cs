@@ -14,6 +14,7 @@ public class JobPosting
     public decimal SalaryMin { get; private set; }
     public decimal SalaryMax { get; private set; }
     public DateOnly ClosingDate { get; private set; }
+    public JobPostingStatus Status { get; private set; }
     public Guid CreatedByUserId { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -65,6 +66,7 @@ public class JobPosting
             SalaryMin = salaryMin,
             SalaryMax = salaryMax,
             ClosingDate = closingDate,
+            Status = JobPostingStatus.Draft,
             CreatedByUserId = createdByUserId,
             CreatedAt = createdAt,
             UpdatedAt = createdAt
