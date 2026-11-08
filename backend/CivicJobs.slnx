@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="CivicJobs.Application/CivicJobs.Application.csproj" />
+  <Project Path="CivicJobs.Core/CivicJobs.Core.csproj" />
+  <Project Path="CivicJobs.Identity.Api/CivicJobs.Identity.Api.csproj" />
+  <Project Path="CivicJobs.Identity.ApiTests/CivicJobs.Identity.ApiTests.csproj" />
+  <Project Path="CivicJobs.Infrastructure/CivicJobs.Infrastructure.csproj" />
+  <Project Path="CivicJobs.Jobs.Api/CivicJobs.Jobs.Api.csproj" />
+  <Project Path="CivicJobs.Jobs.ApiTests/CivicJobs.Jobs.ApiTests.csproj" />
+  <Project Path="CivicJobs.UnitTests/CivicJobs.UnitTests.csproj" />
+</Solution>
