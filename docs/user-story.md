@@ -33,10 +33,10 @@ The problem, scope and requirement ids (FR-xx, BR-xx) are in [PRD.md](PRD.md). T
 | Department | string | Required, up to 100 chars |
 | Description | string | Required, up to 4,000 chars |
 | Location | string | Required, up to 100 chars |
-| EmploymentType | enum | FullTime, PartTime, Temporary |
+| EmploymentType | enum | FullTime, PartTime, Temporary; any other value is rejected |
 | SalaryMin | decimal | > 0 |
 | SalaryMax | decimal | >= SalaryMin |
-| ClosingDate | DateOnly | Must be after today to publish |
+| ClosingDate | DateOnly | Not in the past on create (today is allowed); must be after today to publish |
 | Status | enum | Draft, Open, Closed |
 | CreatedByUserId | Guid | Owner, set from the token, never from the request body |
 | CreatedAt / UpdatedAt | DateTimeOffset | UTC, from `TimeProvider` |
