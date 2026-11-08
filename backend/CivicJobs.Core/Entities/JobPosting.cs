@@ -39,25 +39,10 @@ public class JobPosting
             throw new DomainValidationException("CreatedByUserId is required.");
         }
 
-        if (string.IsNullOrWhiteSpace(title))
-        {
-            throw new DomainValidationException("Title is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(department))
-        {
-            throw new DomainValidationException("Department is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(description))
-        {
-            throw new DomainValidationException("Description is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(location))
-        {
-            throw new DomainValidationException("Location is required.");
-        }
+        EnsureRequired(title, nameof(Title));
+        EnsureRequired(department, nameof(Department));
+        EnsureRequired(description, nameof(Description));
+        EnsureRequired(location, nameof(Location));
 
         if (salaryMin <= 0)
         {
@@ -84,5 +69,13 @@ public class JobPosting
             CreatedAt = createdAt,
             UpdatedAt = createdAt
         };
+    }
+
+    private static void EnsureRequired(string value, string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new DomainValidationException($"{fieldName} is required.");
+        }
     }
 }
