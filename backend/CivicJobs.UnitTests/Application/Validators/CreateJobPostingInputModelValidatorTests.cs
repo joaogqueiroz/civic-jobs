@@ -2,12 +2,16 @@ using CivicJobs.Application.InputModels;
 using CivicJobs.Application.Validators;
 using CivicJobs.Core.Enums;
 using FluentValidation.TestHelper;
+using Microsoft.Extensions.Time.Testing;
 
 namespace CivicJobs.UnitTests.Application.Validators;
 
 public class CreateJobPostingInputModelValidatorTests
 {
-    private readonly CreateJobPostingInputModelValidator _validator = new();
+    private static readonly DateTimeOffset Now = new(2026, 11, 8, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateOnly Today = DateOnly.FromDateTime(Now.UtcDateTime);
+
+    private readonly CreateJobPostingInputModelValidator _validator = new(new FakeTimeProvider(Now));
 
     [Fact]
     [Trait("Rule", "BR-03")]
@@ -205,6 +209,43 @@ public class CreateJobPostingInputModelValidatorTests
         model.SalaryMax = 50_000m;
 
         _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(m => m.SalaryMax);
+    }
+
+    // Closing date
+
+    [Fact]
+    [Trait("Rule", "BR-09")]
+    public void Validate_WhenClosingDateIsInThePast_HasClosingDateError()
+    {
+        var model = ValidModel();
+        model.ClosingDate = Today.AddDays(-1);
+
+        _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.ClosingDate);
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-09")]
+    public void Validate_WhenClosingDateIsToday_HasNoClosingDateError()
+    {
+        var model = ValidModel();
+        model.ClosingDate = Today;
+
+        _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(m => m.ClosingDate);
+    }
+
+    // Employment type
+
+    [Theory]
+    [Trait("Rule", "BR-10")]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(99)]
+    public void Validate_WhenEmploymentTypeIsNotDefined_HasEmploymentTypeError(int employmentType)
+    {
+        var model = ValidModel();
+        model.EmploymentType = (EmploymentType)employmentType;
+
+        _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.EmploymentType);
     }
 
     private static CreateJobPostingInputModel ValidModel() => new()

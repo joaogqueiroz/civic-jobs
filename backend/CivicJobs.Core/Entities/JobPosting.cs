@@ -45,6 +45,11 @@ public class JobPosting
         EnsureRequired(description, nameof(Description));
         EnsureRequired(location, nameof(Location));
 
+        if (!Enum.IsDefined(employmentType))
+        {
+            throw new DomainValidationException("EmploymentType must be FullTime, PartTime or Temporary.");
+        }
+
         if (salaryMin <= 0)
         {
             throw new DomainValidationException("SalaryMin must be greater than zero.");
@@ -53,6 +58,11 @@ public class JobPosting
         if (salaryMax < salaryMin)
         {
             throw new DomainValidationException("SalaryMax must be greater than or equal to SalaryMin.");
+        }
+
+        if (closingDate < DateOnly.FromDateTime(createdAt.UtcDateTime))
+        {
+            throw new DomainValidationException("ClosingDate can't be in the past.");
         }
 
         return new JobPosting
