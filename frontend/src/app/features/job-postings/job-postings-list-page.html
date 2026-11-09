@@ -32,7 +32,8 @@
         New posting
       </a>
     </section>
-  } @else if (isMobile()) {
+  } @else {
+    <!-- Both layouts are rendered; CSS shows the cards up to 768px and the table above (see the .scss). -->
     <ul class="cards" role="list">
       @for (posting of items; track posting.id) {
         <li>
@@ -51,7 +52,7 @@
         </li>
       }
     </ul>
-  } @else {
+
     <div class="table-wrap">
       <table mat-table [dataSource]="items">
         <ng-container matColumnDef="title">

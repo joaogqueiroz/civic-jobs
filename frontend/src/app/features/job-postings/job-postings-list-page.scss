@@ -106,6 +106,22 @@ td .title {
   margin-top: 8px;
 }
 
+// Layout switch in CSS only, so the browser re-applies it on every resize (DevTools device mode,
+// docking DevTools, background tabs) without depending on a JavaScript resize event.
+.cards {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .cards {
+    display: flex;
+  }
+
+  .table-wrap {
+    display: none;
+  }
+}
+
 .empty {
   display: flex;
   flex-direction: column;

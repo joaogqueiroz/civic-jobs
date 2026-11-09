@@ -1,14 +1,13 @@
-import { BreakpointObserver } from '@angular/cdk/layout';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, computed, effect, inject, input } from '@angular/core';
-import { rxResource, toSignal } from '@angular/core/rxjs-interop';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
 import { Router, RouterLink } from '@angular/router';
-import { map, of } from 'rxjs';
+import { of } from 'rxjs';
 import { JobPosting, JobPostingStatus } from '../../core/models';
 import { Notifier } from '../../core/notifier';
 import { StatusBadge } from '../../shared/status-badge';
@@ -43,13 +42,6 @@ export class JobPostingsListPage {
 
   protected readonly selectedStatus = computed(() =>
     STATUSES.find((status) => status === this.status()),
-  );
-
-  protected readonly isMobile = toSignal(
-    inject(BreakpointObserver)
-      .observe('(max-width: 768px)')
-      .pipe(map((state) => state.matches)),
-    { initialValue: false },
   );
 
   /** All of the recruiter's postings: the source of the counts on the filter chips. */
