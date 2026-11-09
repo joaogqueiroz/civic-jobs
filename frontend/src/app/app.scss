@@ -2,18 +2,26 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  gap: 8px;
-  background: var(--mat-sys-primary-container);
-  color: var(--mat-sys-on-primary-container);
+  gap: 12px;
+  height: 64px;
+  padding: 0 max(16px, calc((100% - 1120px) / 2 + 24px));
+  border-bottom: 1px solid var(--cj-border);
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: inherit;
+  color: var(--cj-text);
   text-decoration: none;
-  font: var(--mat-sys-title-large);
+  font: 700 20px/1 'Public Sans', system-ui, sans-serif;
+}
+
+.brand-icon {
+  color: var(--cj-primary);
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
 }
 
 .spacer {
@@ -21,14 +29,22 @@
 }
 
 .user-name {
-  font: var(--mat-sys-body-large);
+  font-size: 14px;
+  color: var(--cj-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 45vw;
+  max-width: 40vw;
 }
 
 main {
-  max-width: 1100px;
+  max-width: 1120px;
   margin: 0 auto;
+  padding: 32px 24px 48px;
+}
+
+@media (max-width: 600px) {
+  main {
+    padding: 20px 16px 40px;
+  }
 }
