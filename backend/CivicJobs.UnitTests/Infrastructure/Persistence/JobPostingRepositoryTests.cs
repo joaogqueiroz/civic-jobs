@@ -14,6 +14,7 @@ namespace CivicJobs.UnitTests.Infrastructure.Persistence;
 public sealed class JobPostingRepositoryTests : IDisposable
 {
     private static readonly DateTimeOffset Now = new(2026, 11, 8, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateOnly Today = DateOnly.FromDateTime(Now.UtcDateTime);
 
     private readonly SqliteTestDatabase _database = new();
     private readonly Guid _ownerId = Guid.NewGuid();
@@ -129,6 +130,64 @@ public sealed class JobPostingRepositoryTests : IDisposable
 
     #endregion
 
+    #region Public list of open postings (FR-11)
+
+    [Fact]
+    [Trait("Requirement", "FR-11")]
+    public async Task ListOpenAsync_ReturnsOpenPostingsFromAllRecruitersOnly()
+    {
+        var otherOwner = Guid.NewGuid();
+        await SeedAsync(Posting(_ownerId));
+        var openMine = await SeedAsync(Published(Posting(_ownerId)));
+        var openOther = await SeedAsync(Published(Posting(otherOwner)));
+        var closed = Published(Posting(otherOwner));
+        closed.Close(Now);
+        await SeedAsync(closed);
+
+        var result = await Repository().ListOpenAsync(Today, CancellationToken.None);
+
+        result.Select(p => p.Id).ShouldBe([openMine.Id, openOther.Id], ignoreOrder: true);
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-11")]
+    public async Task ListOpenAsync_ExcludesOpenPostingsWhoseClosingDateHasPassed()
+    {
+        var closesToday = await SeedAsync(OpenPostingClosingOn(Today));
+        await SeedAsync(OpenPostingClosingOn(Today.AddDays(-1)));
+
+        var result = await Repository().ListOpenAsync(Today, CancellationToken.None);
+
+        result.Select(p => p.Id).ShouldBe([closesToday.Id]);
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-11")]
+    public async Task ListOpenAsync_OrdersBySoonestClosingDate()
+    {
+        var later = await SeedAsync(OpenPostingClosingOn(Today.AddDays(20)));
+        var sooner = await SeedAsync(OpenPostingClosingOn(Today.AddDays(5)));
+
+        var result = await Repository().ListOpenAsync(Today, CancellationToken.None);
+
+        result.Select(p => p.Id).ShouldBe([sooner.Id, later.Id]);
+    }
+
+    #endregion
+    private static JobPosting Published(JobPosting posting)
+    {
+        posting.Publish(posting.CreatedAt);
+        return posting;
+    }
+
+    /// <summary>An Open posting with the given closing date, created and published early enough for the rules to allow it.</summary>
+    private static JobPosting OpenPostingClosingOn(DateOnly closingDate)
+    {
+        var createdAt = new DateTimeOffset(closingDate.AddDays(-30).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        var posting = Posting(Guid.NewGuid(), createdAt, closingDate);
+        posting.Publish(createdAt);
+        return posting;
+    }
     private JobPostingRepository Repository() => new(_database.CreateContext());
 
     private async Task<JobPosting> SeedAsync(JobPosting posting)
@@ -137,7 +196,7 @@ public sealed class JobPostingRepositoryTests : IDisposable
         return posting;
     }
 
-    private static JobPosting Posting(Guid ownerId, DateTimeOffset? createdAt = null) =>
+    private static JobPosting Posting(Guid ownerId, DateTimeOffset? createdAt = null, DateOnly? closingDate = null) =>
         JobPosting.Create(
             createdByUserId: ownerId,
             title: "Park Ranger",
@@ -147,6 +206,6 @@ public sealed class JobPostingRepositoryTests : IDisposable
             employmentType: EmploymentType.PartTime,
             salaryMin: 50_000.50m,
             salaryMax: 60_000m,
-            closingDate: new DateOnly(2026, 12, 31),
+            closingDate: closingDate ?? new DateOnly(2026, 12, 31),
             createdAt: createdAt ?? Now);
 }
