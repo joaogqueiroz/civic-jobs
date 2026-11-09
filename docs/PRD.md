@@ -69,7 +69,7 @@ Each requirement maps to tests, so the test suite shows which rules are covered.
 | ID | Rule | Error |
 |---|---|---|
 | BR-01 | Email is unique and stored in lowercase | 409 |
-| BR-02 | Password has at least 8 chars, with a letter and a number | 400 |
+| BR-02 | Password has 8 to 128 chars, with a letter and a number | 400 |
 | BR-03 | Title, department, description and location are required, within their max length | 400 |
 | BR-04 | SalaryMin is greater than zero and SalaryMax is greater than or equal to SalaryMin | 400 |
 | BR-05 | A posting can be published only if its closing date is after today | 409 |

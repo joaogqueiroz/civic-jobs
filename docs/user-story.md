@@ -62,7 +62,7 @@ Draft --publish--> Open --close--> Closed
 | PasswordHash | string | Hashed with `PasswordHasher<T>`, never returned by the API |
 | CreatedAt | DateTimeOffset | UTC |
 
-Password: at least 8 chars, with a letter and a number.
+Password: 8 to 128 chars, with a letter and a number. The upper limit caps the cost of hashing.
 
 ## APIs
 
