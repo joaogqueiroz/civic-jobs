@@ -1,11 +1,18 @@
+using CivicJobs.Infrastructure;
+using CivicJobs.Infrastructure.Web;
+
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.ContentRootPath);
+builder.AddCivicJobsWebApi("CivicJobs Jobs API");
 
 var app = builder.Build();
 
-app.UseAuthorization();
+if (app.Environment.IsDevelopment())
+{
+    await app.Services.InitializeDatabaseAsync();
+}
 
-app.MapControllers();
+app.UseCivicJobsWebApi();
 
 app.Run();

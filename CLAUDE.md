@@ -24,10 +24,11 @@ backend/
   CivicJobs.Application/       Services (IJobPostingService, IAuthService, IUserService), Abstractions (IPasswordHasher, ITokenService),
                                InputModels, ViewModels, Validators. References Core only.
   CivicJobs.Infrastructure/    Persistence (CivicJobsDbContext, Configurations, Repositories, Migrations, DbInitializer),
-                               Auth (PasswordHasher, JwtTokenService, JwtOptions), DependencyInjection.
+                               Auth (PasswordHasher, JwtTokenService, JwtOptions), DependencyInjection,
+                               Web (shared by both APIs: GlobalExceptionHandler, JWT bearer, Swagger, ClaimsPrincipal.GetUserId).
                                References Application and Core.
   CivicJobs.Identity.Api/      AuthController, UsersController. References Application and Infrastructure.
-  CivicJobs.Jobs.Api/          JobPostingsController (+ optional PublicJobPostingsController). References Application and Infrastructure.
+  CivicJobs.Jobs.Api/          JobPostingsController. References Application and Infrastructure.
   CivicJobs.UnitTests/         Core/, Application/, Infrastructure/ (folders mirror the layers)
   CivicJobs.Identity.ApiTests/ endpoint tests with WebApplicationFactory
   CivicJobs.Jobs.ApiTests/     endpoint tests with WebApplicationFactory
@@ -50,6 +51,11 @@ The two API test projects are separate on purpose: each web project has its own 
 - Domain exceptions inherit from a base `DomainException` in Core:
   - `DomainValidationException`: invalid data that breaks an entity invariant (for example a bad salary range). Maps to 400.
   - `InvalidStatusTransitionException`: an action not allowed in the current status (publish, close, edit or delete). Maps to 409.
+- Application exceptions (in `CivicJobs.Application/Exceptions`), for rules that need other data or ownership:
+  - `NotFoundException`: the resource doesn't exist or belongs to another user (BR-08). Maps to 404.
+  - `ConflictException`: the email is already in use (BR-01). Maps to 409.
+  - `InvalidCredentialsException`: unknown email or wrong password, same message for both. Maps to 401.
+  - `UnauthorizedException`: a valid token whose user no longer exists. Maps to 401.
 - FluentValidation errors map to 400 with `ValidationProblemDetails`; other errors use `ProblemDetails`. Use a global exception handler (`IExceptionHandler`), no try/catch in controllers.
 - No secrets in code. JWT settings come from the `Jwt` configuration section; `appsettings.Development.json` holds a clearly fake dev key. Both APIs use the same issuer, audience and key.
 - Async all the way, pass `CancellationToken`.
@@ -66,15 +72,22 @@ The two API test projects are separate on purpose: each web project has its own 
 - Jobs API: http://localhost:5102
 - Frontend: http://localhost:4200
 
-## TDD workflow (always)
+## Git workflow
 
-1. Write the failing test first. Run it and confirm it fails for the right reason.
-2. Stop and show me the test before implementing.
-3. Write the minimum code to make it pass.
-4. Refactor with tests green.
-5. Suggest a commit per step with these prefixes: `test:` (red), `feat:` (green), `refactor:`.
+- One branch per block: `feature/backend`, then `feature/frontend`. No PR per feature.
+- Commit messages: only the conventional commit line, plus a short body if needed. No `Co-Authored-By` trailers or any Claude or AI attribution.
+- Never delete branches, local or remote.
 
-Use the `tdd-cycle` skill for new behavior. Before I commit a finished feature, run the `architecture-reviewer` agent.
+## TDD workflow (per feature, without stopping)
+
+1. Write all the tests for the feature. Run them and confirm they fail for the right reason (an assertion, or a missing member the tests drive). Commit `test: ...`.
+2. Implement the minimum code. Run all tests green. Commit `feat: ...`.
+3. Refactor with tests green. Commit `refactor: ...` only when something changed.
+4. Move to the next feature.
+
+Only stop and ask me if a decision isn't covered by this file, `docs/PRD.md` or `docs/user-story.md`.
+This replaces the "stop and wait for my OK" step in the `tdd-cycle` skill; follow the rest of the skill (rule ids, layers, boundaries).
+At the end of each block, run the `architecture-reviewer` agent and fix every "Must fix" item before pushing.
 
 Where tests go:
 - Entity rules: `CivicJobs.UnitTests/Core`
@@ -85,6 +98,7 @@ Where tests go:
 Test names: `Method_State_ExpectedResult`, for example `Publish_WhenClosingDateIsInThePast_ThrowsDomainException`.
 Tag each test with the PRD id it covers: `[Trait("Requirement", "FR-08")]` or `[Trait("Rule", "BR-05")]`, so `dotnet test --filter Rule=BR-05` runs the tests for one rule.
 One behavior per test. Don't write tests that only check a mock was called when a real assertion on the result is possible.
+Group related tests (or members) with `#region Name` / `#endregion`, not section comments like `// Register`. Comments are only for explaining why the code does something.
 
 ## Commands
 

@@ -20,7 +20,7 @@ The problem, scope and requirement ids (FR-xx, BR-xx) are in [PRD.md](PRD.md). T
 | 6 | I can **close** an Open posting. A Closed posting can't be edited or reopened | FR-09, BR-06 |
 | 7 | I can delete only **Draft** postings. Published postings are kept for public records | FR-10, BR-07 |
 | 8 | I can't see, edit or delete postings created by another recruiter | BR-08 |
-| 9 | (Optional) Anyone, without logging in, can list Open postings | FR-11 |
+| 9 | ~~Anyone, without logging in, can list Open postings~~ **Out of scope for v1.0** | FR-11 |
 
 ## Domain model
 
@@ -51,6 +51,7 @@ Draft --publish--> Open --close--> Closed
 - Editing an Open posting keeps the publish rules (closing date must stay after today).
 - Delete: Draft only.
 - Any other transition returns **409 Conflict**.
+- Order of checks on edit (PUT): **404** if the posting doesn't exist or belongs to another user, then **409** if it's Closed, then **400** for invalid input (including a closing date in the past), then **409** if an Open posting's closing date isn't after today (BR-05).
 
 ### User
 
@@ -62,7 +63,7 @@ Draft --publish--> Open --close--> Closed
 | PasswordHash | string | Hashed with `PasswordHasher<T>`, never returned by the API |
 | CreatedAt | DateTimeOffset | UTC |
 
-Password: at least 8 chars, with a letter and a number.
+Password: 8 to 128 chars, with a letter and a number. The upper limit caps the cost of hashing.
 
 ## APIs
 
@@ -87,7 +88,7 @@ Both APIs use the same JWT settings (issuer, audience, signing key), so a token 
 | DELETE | /api/job-postings/{id} | Bearer | 204 | 401, 404, 409 |
 | POST | /api/job-postings/{id}/publish | Bearer | 200 | 401, 404, 409 |
 | POST | /api/job-postings/{id}/close | Bearer | 200 | 401, 404, 409 |
-| GET | /api/public/job-postings | Anonymous | 200 + Open postings | (optional) |
+| ~~GET~~ | ~~/api/public/job-postings~~ | ~~Anonymous~~ | ~~200 + Open postings~~ | **Out of scope for v1.0 (FR-11)** |
 
 A posting owned by another user returns **404**, not 403, so the API doesn't reveal that the id exists.
 

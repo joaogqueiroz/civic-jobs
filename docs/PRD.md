@@ -33,6 +33,7 @@ CivicJobs is the first module of a hiring system: it manages the **life cycle of
 - Roles and permissions beyond "recruiter" (admin, hiring manager)
 - Approval workflows, email notifications, file attachments
 - Multiple agencies (multi-tenancy)
+- Public, anonymous listing of Open postings (FR-11)
 
 ## 4. Users
 
@@ -61,14 +62,14 @@ Each requirement maps to tests, so the test suite shows which rules are covered.
 | FR-08 | A recruiter can publish a Draft posting | Must |
 | FR-09 | A recruiter can close an Open posting | Must |
 | FR-10 | A recruiter can delete a Draft posting | Must |
-| FR-11 | Anyone can list Open postings without logging in | Could |
+| FR-11 | ~~Anyone can list Open postings without logging in~~ **Out of scope for v1.0** | Won't |
 
 ## 7. Business rules
 
 | ID | Rule | Error |
 |---|---|---|
 | BR-01 | Email is unique and stored in lowercase | 409 |
-| BR-02 | Password has at least 8 chars, with a letter and a number | 400 |
+| BR-02 | Password has 8 to 128 chars, with a letter and a number | 400 |
 | BR-03 | Title, department, description and location are required, within their max length | 400 |
 | BR-04 | SalaryMin is greater than zero and SalaryMax is greater than or equal to SalaryMin | 400 |
 | BR-05 | A posting can be published only if its closing date is after today | 409 |
