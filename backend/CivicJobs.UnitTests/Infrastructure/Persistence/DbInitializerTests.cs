@@ -89,6 +89,34 @@ public sealed class DbInitializerTests : IDisposable
         (await context.JobPostings.CountAsync()).ShouldBe(7);
     }
 
+    [Fact]
+    public async Task InitializeAsync_WhenBothApisStartAtTheSameTime_SeedsOnlyOnce()
+    {
+        // Both APIs run DbInitializer against the same SQLite file at startup. A file (not :memory:) and
+        // separate connections are needed to reproduce two processes racing to seed.
+        var databasePath = Path.Combine(Path.GetTempPath(), $"civicjobs-{Guid.NewGuid():N}.db");
+        var connectionString = $"Data Source={databasePath};Pooling=False";
+
+        try
+        {
+            await Task.WhenAll(Enumerable.Range(0, 2).Select(_ => Task.Run(async () =>
+            {
+                await using var context = new CivicJobsDbContext(
+                    new DbContextOptionsBuilder<CivicJobsDbContext>().UseSqlite(connectionString).Options);
+                await DbInitializer.InitializeAsync(context, _passwordHasher, _timeProvider, CancellationToken.None);
+            })));
+
+            await using var check = new CivicJobsDbContext(
+                new DbContextOptionsBuilder<CivicJobsDbContext>().UseSqlite(connectionString).Options);
+            (await check.Users.CountAsync()).ShouldBe(2);
+            (await check.JobPostings.CountAsync()).ShouldBe(7);
+        }
+        finally
+        {
+            File.Delete(databasePath);
+        }
+    }
+
     private async Task InitializeAsync()
     {
         await using var context = CreateContext();
