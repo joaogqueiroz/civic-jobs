@@ -110,6 +110,8 @@ cd backend && dotnet run --project CivicJobs.Jobs.Api
 cd backend && dotnet ef migrations add <Name> --project CivicJobs.Infrastructure --startup-project CivicJobs.Jobs.Api --output-dir Persistence/Migrations
 cd frontend && npm start
 cd frontend && npm test
+docker compose up --build        # whole app: frontend :4200, Identity API :5101, Jobs API :5102
+docker compose down -v           # stop and delete the SQLite volume (fresh seed on next up)
 ```
 
 ## Frontend rules
