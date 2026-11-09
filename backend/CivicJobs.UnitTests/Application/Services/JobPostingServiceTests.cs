@@ -1,6 +1,8 @@
 using CivicJobs.Application.InputModels;
 using CivicJobs.Application.Services;
+using CivicJobs.Application.Validators;
 using CivicJobs.Core.Enums;
+using FluentValidation;
 using Microsoft.Extensions.Time.Testing;
 using Shouldly;
 
@@ -35,7 +37,21 @@ public class JobPostingServiceTests
             () => result.UpdatedAt.ShouldBe(Now));
     }
 
-    private JobPostingService CreateService() => new(_timeProvider);
+    [Fact]
+    [Trait("Rule", "BR-03")]
+    public async Task CreateAsync_WithInvalidInput_ThrowsValidationException()
+    {
+        var input = ValidInput();
+        input.Title = "ab";
+
+        var create = () => CreateService().CreateAsync(Guid.NewGuid(), input, CancellationToken.None);
+
+        var exception = await create.ShouldThrowAsync<ValidationException>();
+        exception.Errors.ShouldContain(e => e.PropertyName == nameof(CreateJobPostingInputModel.Title));
+    }
+
+    private JobPostingService CreateService() =>
+        new(new CreateJobPostingInputModelValidator(_timeProvider), _timeProvider);
 
     private static CreateJobPostingInputModel ValidInput() => new()
     {

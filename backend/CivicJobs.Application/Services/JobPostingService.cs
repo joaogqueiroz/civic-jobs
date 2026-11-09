@@ -1,10 +1,13 @@
 using CivicJobs.Application.InputModels;
 using CivicJobs.Application.ViewModels;
 using CivicJobs.Core.Entities;
+using FluentValidation;
 
 namespace CivicJobs.Application.Services;
 
-public sealed class JobPostingService(TimeProvider timeProvider) : IJobPostingService
+public sealed class JobPostingService(
+    IValidator<CreateJobPostingInputModel> validator,
+    TimeProvider timeProvider) : IJobPostingService
 {
     public Task<JobPostingViewModel> CreateAsync(
         Guid userId,
