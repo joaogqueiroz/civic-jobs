@@ -40,6 +40,106 @@ public class JobPosting
             throw new DomainValidationException("CreatedByUserId is required.");
         }
 
+        ValidateDetails(title, department, description, location, employmentType, salaryMin, salaryMax);
+        EnsureClosingDateIsNotInThePast(closingDate, createdAt);
+
+        return new JobPosting
+        {
+            Id = Guid.NewGuid(),
+            Title = title,
+            Department = department,
+            Description = description,
+            Location = location,
+            EmploymentType = employmentType,
+            SalaryMin = salaryMin,
+            SalaryMax = salaryMax,
+            ClosingDate = closingDate,
+            Status = JobPostingStatus.Draft,
+            CreatedByUserId = createdByUserId,
+            CreatedAt = createdAt,
+            UpdatedAt = createdAt
+        };
+    }
+
+    public void Update(
+        string title,
+        string department,
+        string description,
+        string location,
+        EmploymentType employmentType,
+        decimal salaryMin,
+        decimal salaryMax,
+        DateOnly closingDate,
+        DateTimeOffset updatedAt)
+    {
+        if (Status == JobPostingStatus.Closed)
+        {
+            throw new InvalidStatusTransitionException("A closed job posting can't be edited.");
+        }
+
+        ValidateDetails(title, department, description, location, employmentType, salaryMin, salaryMax);
+
+        if (Status == JobPostingStatus.Open)
+        {
+            EnsureClosingDateIsAfterToday(closingDate, updatedAt);
+        }
+        else
+        {
+            EnsureClosingDateIsNotInThePast(closingDate, updatedAt);
+        }
+
+        Title = title;
+        Department = department;
+        Description = description;
+        Location = location;
+        EmploymentType = employmentType;
+        SalaryMin = salaryMin;
+        SalaryMax = salaryMax;
+        ClosingDate = closingDate;
+        UpdatedAt = updatedAt;
+    }
+
+    public void Publish(DateTimeOffset publishedAt)
+    {
+        if (Status != JobPostingStatus.Draft)
+        {
+            throw new InvalidStatusTransitionException($"Only a Draft job posting can be published. Current status: {Status}.");
+        }
+
+        EnsureClosingDateIsAfterToday(ClosingDate, publishedAt);
+
+        Status = JobPostingStatus.Open;
+        UpdatedAt = publishedAt;
+    }
+
+    public void Close(DateTimeOffset closedAt)
+    {
+        if (Status != JobPostingStatus.Open)
+        {
+            throw new InvalidStatusTransitionException($"Only an Open job posting can be closed. Current status: {Status}.");
+        }
+
+        Status = JobPostingStatus.Closed;
+        UpdatedAt = closedAt;
+    }
+
+    public void EnsureCanBeDeleted()
+    {
+        if (Status != JobPostingStatus.Draft)
+        {
+            throw new InvalidStatusTransitionException("Only a Draft job posting can be deleted. Published postings are kept as records.");
+        }
+    }
+
+    private static void ValidateDetails(
+        string title,
+        string department,
+        string description,
+        string location,
+        EmploymentType employmentType,
+        decimal salaryMin,
+        decimal salaryMax)
+    {
         EnsureRequired(title, nameof(Title));
         EnsureRequired(department, nameof(Department));
         EnsureRequired(description, nameof(Description));
@@ -59,29 +159,25 @@ public class JobPosting
         {
             throw new DomainValidationException("SalaryMax must be greater than or equal to SalaryMin.");
         }
+    }
 
-        if (closingDate < DateOnly.FromDateTime(createdAt.UtcDateTime))
+    private static void EnsureClosingDateIsNotInThePast(DateOnly closingDate, DateTimeOffset now)
+    {
+        if (closingDate < ToDate(now))
         {
             throw new DomainValidationException("ClosingDate can't be in the past.");
         }
-
-        return new JobPosting
-        {
-            Id = Guid.NewGuid(),
-            Title = title,
-            Department = department,
-            Description = description,
-            Location = location,
-            EmploymentType = employmentType,
-            SalaryMin = salaryMin,
-            SalaryMax = salaryMax,
-            ClosingDate = closingDate,
-            Status = JobPostingStatus.Draft,
-            CreatedByUserId = createdByUserId,
-            CreatedAt = createdAt,
-            UpdatedAt = createdAt
-        };
     }
+
+    private static void EnsureClosingDateIsAfterToday(DateOnly closingDate, DateTimeOffset now)
+    {
+        if (closingDate <= ToDate(now))
+        {
+            throw new InvalidStatusTransitionException("An Open job posting must have a closing date after today.");
+        }
+    }
+
+    private static DateOnly ToDate(DateTimeOffset value) => DateOnly.FromDateTime(value.UtcDateTime);
 
     private static void EnsureRequired(string value, string fieldName)
     {
