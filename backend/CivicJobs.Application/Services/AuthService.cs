@@ -44,8 +44,11 @@ public sealed class AuthService(
 
         var user = await users.GetByEmailAsync(User.NormalizeEmail(input.Email), cancellationToken);
 
-        // Same error for unknown email and wrong password, so the API doesn't reveal which emails are registered.
-        if (user is null || !passwordHasher.Verify(user.PasswordHash, input.Password))
+        // Always verify, even for an unknown email, and use the same error for both cases,
+        // so neither the response nor its timing reveals which emails are registered.
+        var passwordMatches = passwordHasher.Verify(user?.PasswordHash, input.Password);
+
+        if (user is null || !passwordMatches)
         {
             throw new InvalidCredentialsException();
         }

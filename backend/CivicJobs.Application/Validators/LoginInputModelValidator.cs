@@ -8,6 +8,8 @@ public sealed class LoginInputModelValidator : AbstractValidator<LoginInputModel
     public LoginInputModelValidator()
     {
         RuleFor(m => m.Email).NotEmpty();
-        RuleFor(m => m.Password).NotEmpty();
+        RuleFor(m => m.Password)
+            .NotEmpty()
+            .MaximumLength(RegisterInputModelValidator.PasswordMaxLength);
     }
 }
