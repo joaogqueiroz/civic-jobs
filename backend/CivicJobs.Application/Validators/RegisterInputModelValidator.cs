@@ -1,4 +1,5 @@
 using CivicJobs.Application.InputModels;
+using CivicJobs.Core.Entities;
 using FluentValidation;
 
 namespace CivicJobs.Application.Validators;
@@ -12,7 +13,7 @@ public sealed class RegisterInputModelValidator : AbstractValidator<RegisterInpu
     {
         RuleFor(m => m.FullName)
             .NotEmpty()
-            .MaximumLength(100);
+            .MaximumLength(User.FullNameMaxLength);
 
         RuleFor(m => m.Email)
             .NotEmpty()
