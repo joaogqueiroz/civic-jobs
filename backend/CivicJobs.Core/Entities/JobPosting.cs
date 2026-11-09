@@ -5,6 +5,12 @@ namespace CivicJobs.Core.Entities;
 
 public class JobPosting
 {
+    public const int TitleMinLength = 3;
+    public const int TitleMaxLength = 150;
+    public const int DepartmentMaxLength = 100;
+    public const int DescriptionMaxLength = 4000;
+    public const int LocationMaxLength = 100;
+
     public Guid Id { get; private set; }
     public string Title { get; private set; } = string.Empty;
     public string Department { get; private set; } = string.Empty;

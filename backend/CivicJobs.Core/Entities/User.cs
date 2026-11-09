@@ -2,6 +2,8 @@ namespace CivicJobs.Core.Entities;
 
 public class User
 {
+    public const int FullNameMaxLength = 100;
+
     public Guid Id { get; private set; }
     public string Email { get; private set; } = string.Empty;
     public string FullName { get; private set; } = string.Empty;
