@@ -21,6 +21,10 @@ public static class DbInitializer
     {
         await context.Database.MigrateAsync(cancellationToken);
 
+        // Both APIs seed the same SQLite file at startup. Microsoft.Data.Sqlite starts transactions with
+        // BEGIN IMMEDIATE, which takes the write lock up front, so the second API waits here and then sees the users.
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
         if (await context.Users.AnyAsync(cancellationToken))
         {
             return;
@@ -53,6 +57,7 @@ public static class DbInitializer
                 "Public Works Yard", EmploymentType.FullTime, 40_000m, 47_000m, today.AddDays(40), now.AddDays(-4)));
 
         await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     private static JobPosting Posting(
