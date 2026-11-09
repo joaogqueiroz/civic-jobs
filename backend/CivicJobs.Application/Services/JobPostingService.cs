@@ -1,13 +1,16 @@
+using CivicJobs.Application.Exceptions;
 using CivicJobs.Application.InputModels;
 using CivicJobs.Application.ViewModels;
 using CivicJobs.Core.Entities;
+using CivicJobs.Core.Enums;
 using CivicJobs.Core.Repositories;
 using FluentValidation;
 
 namespace CivicJobs.Application.Services;
 
 public sealed class JobPostingService(
-    IValidator<CreateJobPostingInputModel> validator,
+    IValidator<CreateJobPostingInputModel> createValidator,
+    IValidator<UpdateJobPostingInputModel> updateValidator,
     IJobPostingRepository repository,
     TimeProvider timeProvider) : IJobPostingService
 {
@@ -16,7 +19,7 @@ public sealed class JobPostingService(
         CreateJobPostingInputModel input,
         CancellationToken cancellationToken)
     {
-        await validator.ValidateAndThrowAsync(input, cancellationToken);
+        await createValidator.ValidateAndThrowAsync(input, cancellationToken);
 
         var posting = JobPosting.Create(
             createdByUserId: userId,
@@ -33,5 +36,92 @@ public sealed class JobPostingService(
         await repository.AddAsync(posting, cancellationToken);
 
         return JobPostingViewModel.FromEntity(posting);
+    }
+
+    public async Task<JobPostingViewModel> GetByIdAsync(Guid userId, Guid id, CancellationToken cancellationToken)
+    {
+        var posting = await GetOwnedAsync(userId, id, cancellationToken);
+
+        return JobPostingViewModel.FromEntity(posting);
+    }
+
+    public async Task<IReadOnlyList<JobPostingViewModel>> ListAsync(
+        Guid userId,
+        JobPostingStatus? status,
+        CancellationToken cancellationToken)
+    {
+        var postings = await repository.ListByOwnerAsync(userId, status, cancellationToken);
+
+        return postings.Select(JobPostingViewModel.FromEntity).ToList();
+    }
+
+    public async Task<JobPostingViewModel> UpdateAsync(
+        Guid userId,
+        Guid id,
+        UpdateJobPostingInputModel input,
+        CancellationToken cancellationToken)
+    {
+        await updateValidator.ValidateAndThrowAsync(input, cancellationToken);
+
+        var posting = await GetOwnedAsync(userId, id, cancellationToken);
+
+        posting.Update(
+            title: input.Title,
+            department: input.Department,
+            description: input.Description,
+            location: input.Location,
+            employmentType: input.EmploymentType,
+            salaryMin: input.SalaryMin,
+            salaryMax: input.SalaryMax,
+            closingDate: input.ClosingDate,
+            updatedAt: timeProvider.GetUtcNow());
+
+        await repository.UpdateAsync(posting, cancellationToken);
+
+        return JobPostingViewModel.FromEntity(posting);
+    }
+
+    public async Task DeleteAsync(Guid userId, Guid id, CancellationToken cancellationToken)
+    {
+        var posting = await GetOwnedAsync(userId, id, cancellationToken);
+
+        posting.EnsureCanBeDeleted();
+
+        await repository.DeleteAsync(posting, cancellationToken);
+    }
+
+    public async Task<JobPostingViewModel> PublishAsync(Guid userId, Guid id, CancellationToken cancellationToken)
+    {
+        var posting = await GetOwnedAsync(userId, id, cancellationToken);
+
+        posting.Publish(timeProvider.GetUtcNow());
+
+        await repository.UpdateAsync(posting, cancellationToken);
+
+        return JobPostingViewModel.FromEntity(posting);
+    }
+
+    public async Task<JobPostingViewModel> CloseAsync(Guid userId, Guid id, CancellationToken cancellationToken)
+    {
+        var posting = await GetOwnedAsync(userId, id, cancellationToken);
+
+        posting.Close(timeProvider.GetUtcNow());
+
+        await repository.UpdateAsync(posting, cancellationToken);
+
+        return JobPostingViewModel.FromEntity(posting);
+    }
+
+    private async Task<JobPosting> GetOwnedAsync(Guid userId, Guid id, CancellationToken cancellationToken)
+    {
+        var posting = await repository.GetByIdAsync(id, cancellationToken);
+
+        // A posting owned by another user is reported as not found, so the API doesn't reveal that the id exists (BR-08).
+        if (posting is null || posting.CreatedByUserId != userId)
+        {
+            throw new NotFoundException($"Job posting {id} was not found.");
+        }
+
+        return posting;
     }
 }
