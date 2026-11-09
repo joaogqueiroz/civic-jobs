@@ -61,9 +61,11 @@ public sealed class JobPostingService(
         UpdateJobPostingInputModel input,
         CancellationToken cancellationToken)
     {
-        await updateValidator.ValidateAndThrowAsync(input, cancellationToken);
-
+        // Order of checks: 404 (missing or not owned), 409 (Closed), 400 (invalid input), then the entity rules.
         var posting = await GetOwnedAsync(userId, id, cancellationToken);
+        posting.EnsureCanBeEdited();
+
+        await updateValidator.ValidateAndThrowAsync(input, cancellationToken);
 
         posting.Update(
             title: input.Title,

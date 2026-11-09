@@ -72,10 +72,7 @@ public class JobPosting
         DateOnly closingDate,
         DateTimeOffset updatedAt)
     {
-        if (Status == JobPostingStatus.Closed)
-        {
-            throw new InvalidStatusTransitionException("A closed job posting can't be edited.");
-        }
+        EnsureCanBeEdited();
 
         ValidateDetails(title, department, description, location, employmentType, salaryMin, salaryMax);
 
@@ -97,6 +94,14 @@ public class JobPosting
         SalaryMax = salaryMax;
         ClosingDate = closingDate;
         UpdatedAt = updatedAt;
+    }
+
+    public void EnsureCanBeEdited()
+    {
+        if (Status == JobPostingStatus.Closed)
+        {
+            throw new InvalidStatusTransitionException("A closed job posting can't be edited.");
+        }
     }
 
     public void Publish(DateTimeOffset publishedAt)
