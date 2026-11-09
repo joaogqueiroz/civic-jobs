@@ -45,6 +45,7 @@ public static class WebApiExtensions
                     ValidIssuer = jwt.Issuer,
                     ValidAudience = jwt.Audience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
+                    ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
                     NameClaimType = JwtRegisteredClaimNames.Name,
                     ClockSkew = TimeSpan.FromSeconds(30)
                 };
@@ -62,10 +63,7 @@ public static class WebApiExtensions
                 BearerFormat = "JWT",
                 Description = "Paste the accessToken from POST /api/auth/login (Identity API)."
             });
-            options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
-            {
-                [new OpenApiSecuritySchemeReference("Bearer", document)] = []
-            });
+            options.OperationFilter<AuthorizeOperationFilter>();
         });
 
         return builder;

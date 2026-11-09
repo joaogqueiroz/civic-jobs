@@ -1,13 +1,9 @@
 using System.Text;
 using CivicJobs.Application.Abstractions;
-using CivicJobs.Application.InputModels;
-using CivicJobs.Application.Services;
-using CivicJobs.Application.Validators;
 using CivicJobs.Core.Repositories;
 using CivicJobs.Infrastructure.Auth;
 using CivicJobs.Infrastructure.Persistence;
 using CivicJobs.Infrastructure.Persistence.Repositories;
-using FluentValidation;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -20,10 +16,7 @@ public static class DependencyInjection
 {
     public const string ConnectionStringName = "CivicJobs";
 
-    /// <summary>
-    /// Registers persistence, auth and the Application services. Application has no DI package of its own,
-    /// so the composition of its services lives here, next to the implementations of its abstractions.
-    /// </summary>
+    /// <summary>Registers persistence and the implementations of the Application abstractions (password hashing, tokens).</summary>
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration,
@@ -51,15 +44,6 @@ public static class DependencyInjection
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, JwtTokenService>();
-
-        services.AddSingleton<IValidator<CreateJobPostingInputModel>, CreateJobPostingInputModelValidator>();
-        services.AddSingleton<IValidator<UpdateJobPostingInputModel>, UpdateJobPostingInputModelValidator>();
-        services.AddSingleton<IValidator<RegisterInputModel>, RegisterInputModelValidator>();
-        services.AddSingleton<IValidator<LoginInputModel>, LoginInputModelValidator>();
-
-        services.AddScoped<IJobPostingService, JobPostingService>();
-        services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<IUserService, UserService>();
 
         return services;
     }
