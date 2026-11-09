@@ -1,5 +1,4 @@
 using CivicJobs.Application.InputModels;
-using CivicJobs.Core.Entities;
 using FluentValidation;
 
 namespace CivicJobs.Application.Validators;
@@ -11,20 +10,20 @@ public abstract class JobPostingInputModelValidator<T> : AbstractValidator<T>
     {
         RuleFor(m => m.Title)
             .NotEmpty()
-            .MinimumLength(JobPosting.TitleMinLength)
-            .MaximumLength(JobPosting.TitleMaxLength);
+            .MinimumLength(3)
+            .MaximumLength(150);
 
         RuleFor(m => m.Department)
             .NotEmpty()
-            .MaximumLength(JobPosting.DepartmentMaxLength);
+            .MaximumLength(100);
 
         RuleFor(m => m.Description)
             .NotEmpty()
-            .MaximumLength(JobPosting.DescriptionMaxLength);
+            .MaximumLength(4000);
 
         RuleFor(m => m.Location)
             .NotEmpty()
-            .MaximumLength(JobPosting.LocationMaxLength);
+            .MaximumLength(100);
 
         RuleFor(m => m.EmploymentType)
             .IsInEnum();
