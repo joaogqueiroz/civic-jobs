@@ -68,6 +68,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
         var response = await _client.GetAsync("/api/users/me");
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
     }
 
     [Fact]

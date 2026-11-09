@@ -24,6 +24,7 @@ public sealed class JobPostingsEndpointsTests(JobsApiFactory factory) : IClassFi
         var response = await factory.CreateClient().GetAsync("/api/job-postings");
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
     }
 
     [Fact]
