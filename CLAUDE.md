@@ -50,6 +50,8 @@ The two API test projects are separate on purpose: each web project has its own 
 - Domain exceptions inherit from a base `DomainException` in Core:
   - `DomainValidationException`: invalid data that breaks an entity invariant (for example a bad salary range). Maps to 400.
   - `InvalidStatusTransitionException`: an action not allowed in the current status (publish, close, edit or delete). Maps to 409.
+- Application exceptions (in `CivicJobs.Application/Exceptions`), for rules that need other data or ownership:
+  - `NotFoundException`: the resource doesn't exist or belongs to another user (BR-08). Maps to 404.
 - FluentValidation errors map to 400 with `ValidationProblemDetails`; other errors use `ProblemDetails`. Use a global exception handler (`IExceptionHandler`), no try/catch in controllers.
 - No secrets in code. JWT settings come from the `Jwt` configuration section; `appsettings.Development.json` holds a clearly fake dev key. Both APIs use the same issuer, audience and key.
 - Async all the way, pass `CancellationToken`.
