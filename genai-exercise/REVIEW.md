@@ -53,4 +53,4 @@ The output was good on the first run, and I think the main reason is the prompt:
 
 - A detailed prompt does most of the work. Naming the architecture, the security rules and the error formats gave a result that was close to production quality on the first run.
 - The AI still needs a reviewer: the missing foreign key and the unbounded description pass all tests and only show up when you read the SQL and the configuration. And when the prompt leaves something out, the AI usually leaves it out too.
-- In the main project (CivicJobs) I went further than one prompt: CLAUDE.md with the rules, a TDD skill that stops at red for my review, and a reviewer agent before each commit. One-shot is good for a scaffold; for real work I prefer small steps I can check.
+- In the main project (CivicJobs) I went further than one prompt: CLAUDE.md with the rules, a TDD skill (failing tests first, then the code), and a reviewer agent at the end of each block. One-shot is good for a scaffold; for real work I prefer small steps I can check.
