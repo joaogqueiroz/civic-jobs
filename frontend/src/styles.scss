@@ -1,39 +1,178 @@
-// Include theming for Angular Material with `mat.theme()`.
-// This Sass mixin will define CSS variables that are used for styling Angular Material
-// components according to the Material 3 design spec.
-// Learn more about theming and how to use it for your application's
-// custom components at https://material.angular.dev/guide/theming
+// Calm "civic signage" look: one green, quiet neutrals, Public Sans, light theme only.
 @use '@angular/material' as mat;
+@use './styles/theme-colors' as civic;
+
+:root {
+  --cj-primary: #1e5b47;
+  --cj-text: #1f2a30;
+  --cj-muted: #5b6770;
+  --cj-bg: #f4f6f5;
+  --cj-surface: #ffffff;
+  --cj-border: #dce2df;
+  --cj-danger: #a23b32;
+  --cj-focus: #1e5b47;
+  --cj-radius: 8px;
+}
 
 html {
   height: 100%;
+  color-scheme: light;
+
   @include mat.theme(
     (
       color: (
-        primary: mat.$cyan-palette,
-        tertiary: mat.$orange-palette,
+        primary: civic.$primary-palette,
+        tertiary: civic.$tertiary-palette,
+        theme-type: light,
       ),
-      typography: Roboto,
+      typography: 'Public Sans',
       density: 0,
+    )
+  );
+
+  // Pin the roles that matter to the exact brand tokens (the generated tone 40 is slightly lighter).
+  @include mat.theme-overrides(
+    (
+      primary: #1e5b47,
+      on-primary: #ffffff,
+      background: #f4f6f5,
+      surface: #ffffff,
+      on-surface: #1f2a30,
+      on-surface-variant: #5b6770,
+      outline: #8a958f,
+      outline-variant: #dce2df,
+      error: #a23b32,
+    )
+  );
+
+  // Thick, high-contrast focus rings on every Material control for keyboard users.
+  @include mat.strong-focus-indicators(
+    (
+      border-color: #1e5b47,
+      border-width: 2px,
+    )
+  );
+
+  @include mat.card-overrides(
+    (
+      outlined-container-color: #ffffff,
+      outlined-outline-color: #dce2df,
+      outlined-container-shape: 8px,
+    )
+  );
+
+  // Closed postings show their fields disabled; keep them readable (muted text is 5.9:1 on white).
+  @include mat.form-field-overrides(
+    (
+      outlined-disabled-input-text-color: #5b6770,
+      outlined-disabled-label-text-color: #5b6770,
+      outlined-disabled-outline-color: #dce2df,
+    )
+  );
+
+  @include mat.select-overrides(
+    (
+      disabled-trigger-text-color: #5b6770,
+    )
+  );
+
+  @include mat.button-overrides(
+    (
+      filled-label-text-weight: 600,
+      text-label-text-weight: 600,
+      outlined-label-text-weight: 600,
+    )
+  );
+
+  @include mat.toolbar-overrides(
+    (
+      container-background-color: #ffffff,
+      container-text-color: #1f2a30,
+    )
+  );
+
+  @include mat.chips-overrides(
+    (
+      outline-color: #dce2df,
+      label-text-color: #1f2a30,
+      selected-label-text-color: #1e5b47,
+      elevated-selected-container-color: #e3f1ea,
+      label-text-weight: 500,
+    )
+  );
+
+  @include mat.table-overrides(
+    (
+      background-color: #ffffff,
+      header-headline-color: #5b6770,
+      header-headline-size: 14px,
+      header-headline-weight: 600,
+      row-item-outline-color: #dce2df,
     )
   );
 }
 
 body {
-  // Default the application to a light color theme. This can be changed to
-  // `dark` to enable the dark color theme, or to `light dark` to defer to the
-  // user's system settings.
-  color-scheme: light;
-
-  // Set a default background, font and text colors for the application using
-  // Angular Material's system-level CSS variables. Learn more about these
-  // variables at https://material.angular.dev/guide/system-variables
-  background-color: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-body-medium);
-
-  // Reset the user agent margin.
   margin: 0;
-  height: 100%;
+  min-height: 100%;
+  background: var(--cj-bg);
+  color: var(--cj-text);
+  font: 400 16px/1.5 'Public Sans', system-ui, sans-serif;
 }
-/* You can add global styles to this file, and also import other style files */
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  color: var(--cj-text);
+}
+
+// Type scale: page title 28/600, section title 18/600, body 16/400, small 14.
+.page-title {
+  font: 600 28px/1.25 'Public Sans', system-ui, sans-serif;
+}
+
+.section-title {
+  font: 600 18px/1.4 'Public Sans', system-ui, sans-serif;
+}
+
+.small,
+.muted {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.muted {
+  color: var(--cj-muted);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+// Visible focus for native links and focusable rows (Material controls get theirs from strong-focus-indicators).
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--cj-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+// The destructive text action ("Delete draft") in a muted red, never red alone: it always has a label.
+.danger-text {
+  @include mat.button-overrides(
+    (
+      text-label-text-color: #a23b32,
+      text-state-layer-color: #a23b32,
+    )
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

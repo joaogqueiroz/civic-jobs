@@ -1,10 +1,9 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,25 +13,27 @@ import { MatSelectModule } from '@angular/material/select';
 import { Router, RouterLink } from '@angular/router';
 import { Observable, defer, filter, finalize, switchMap } from 'rxjs';
 import { applyServerErrors } from '../../core/api-errors';
-import { EmploymentType, JobPosting, JobPostingInput } from '../../core/models';
+import { EmploymentType, JobPosting, JobPostingInput, JobPostingStatus } from '../../core/models';
 import { Notifier } from '../../core/notifier';
+import { formFieldDefaults } from '../../shared/form-field-defaults';
 import { ConfirmDialog, ConfirmDialogData } from '../../shared/confirm-dialog';
 import { StatusBadge } from '../../shared/status-badge';
 import { JobPostingsService } from './job-postings.service';
-import { EMPLOYMENT_TYPES, employmentTypeLabel } from './labels';
+import { EMPLOYMENT_TYPES, STATUSES } from './labels';
 
 export type JobPostingPageMode = 'create' | 'view' | 'edit';
 
-/** One page for a posting: create (/new), detail with actions (/:id) and edit (/:id/edit). */
+/**
+ * One page for a posting: create (/new) and detail/edit (/:id and /:id/edit share the same layout).
+ * Form on the left, status panel with the life cycle and its actions on the right.
+ */
 @Component({
   selector: 'app-job-posting-page',
   imports: [
     ReactiveFormsModule,
     RouterLink,
-    CurrencyPipe,
     DatePipe,
     MatButtonModule,
-    MatCardModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
@@ -40,6 +41,7 @@ export type JobPostingPageMode = 'create' | 'view' | 'edit';
     MatSelectModule,
     StatusBadge,
   ],
+  providers: [formFieldDefaults],
   templateUrl: './job-posting-page.html',
   styleUrl: './job-posting-page.scss',
 })
@@ -54,8 +56,8 @@ export class JobPostingPage {
   /** From the route parameter (absent when creating). */
   readonly id = input<string>();
 
+  protected readonly steps = STATUSES;
   protected readonly employmentTypes = EMPLOYMENT_TYPES;
-  protected readonly employmentTypeLabel = employmentTypeLabel;
   protected readonly today = new Date().toLocaleDateString('en-CA'); // yyyy-MM-dd, local date
   protected readonly busy = signal(false);
 
@@ -65,29 +67,35 @@ export class JobPostingPage {
   });
 
   protected readonly current = computed(() => (this.posting.hasValue() ? this.posting.value() : undefined));
-  protected readonly canEdit = computed(() => this.isStatus('Draft', 'Open'));
-  protected readonly canPublish = computed(() => this.isStatus('Draft'));
-  protected readonly canClose = computed(() => this.isStatus('Open'));
-  protected readonly canDelete = computed(() => this.isStatus('Draft'));
+  protected readonly isCreate = computed(() => this.mode() === 'create');
+  protected readonly isClosed = computed(() => this.current()?.status === 'Closed');
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     title: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(150)]],
     department: ['', [Validators.required, Validators.maxLength(100)]],
-    description: ['', [Validators.required, Validators.maxLength(4000)]],
     location: ['', [Validators.required, Validators.maxLength(100)]],
     employmentType: ['FullTime' as EmploymentType, Validators.required],
-    salaryMin: [0, [Validators.required, Validators.min(0.01)]],
-    salaryMax: [0, [Validators.required, Validators.min(0.01)]],
+    salaryMin: [null as number | null, [Validators.required, Validators.min(0.01)]],
+    salaryMax: [null as number | null, [Validators.required, Validators.min(0.01)]],
+    description: ['', [Validators.required, Validators.maxLength(4000)]],
     closingDate: ['', Validators.required],
   });
 
   constructor() {
     effect(() => {
       const posting = this.current();
-      if (posting && this.mode() === 'edit') {
-        const { title, department, description, location, employmentType, salaryMin, salaryMax, closingDate } =
-          posting;
-        this.form.reset({ title, department, description, location, employmentType, salaryMin, salaryMax, closingDate });
+      if (!posting) {
+        return;
+      }
+
+      const { title, department, location, employmentType, salaryMin, salaryMax, description, closingDate } = posting;
+      this.form.reset({ title, department, location, employmentType, salaryMin, salaryMax, description, closingDate });
+
+      // Closed postings are kept as a record and can't be edited (BR-06).
+      if (posting.status === 'Closed') {
+        this.form.disable();
+      } else {
+        this.form.enable();
       }
     });
 
@@ -102,36 +110,55 @@ export class JobPostingPage {
     });
   }
 
+  protected stepState(step: JobPostingStatus): 'done' | 'current' | 'upcoming' {
+    const status = this.current()?.status;
+    if (!status) {
+      return 'upcoming';
+    }
+
+    const position = STATUSES.indexOf(step) - STATUSES.indexOf(status);
+    return position < 0 ? 'done' : position === 0 ? 'current' : 'upcoming';
+  }
+
   protected save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.notifier.message('Some fields need attention. Check the messages under each field.');
       return;
     }
 
-    const input: JobPostingInput = this.form.getRawValue();
+    const input = this.form.getRawValue() as JobPostingInput; // salaries are non-null once the form is valid
     const id = this.id();
-    const request = this.mode() === 'edit' && id ? this.service.update(id, input) : this.service.create(input);
 
-    this.run(request, this.mode() === 'edit' ? 'Posting saved.' : 'Draft created.', (saved) =>
-      this.router.navigate(['/job-postings', saved.id]),
-    );
+    if (this.isCreate() || !id) {
+      this.run(this.service.create(input), 'Posting created', (saved) =>
+        this.router.navigate(['/job-postings', saved.id]),
+      );
+    } else {
+      this.run(this.service.update(id, input), 'Changes saved', (saved) => {
+        this.posting.set(saved);
+        if (this.mode() === 'edit') {
+          void this.router.navigate(['/job-postings', saved.id]);
+        }
+      });
+    }
   }
 
   protected publish(posting: JobPosting): void {
-    this.run(this.service.publish(posting.id), 'Posting published.', (saved) => this.posting.set(saved));
+    this.run(this.service.publish(posting.id), 'Posting published', (saved) => this.posting.set(saved));
   }
 
   protected close(posting: JobPosting): void {
     this.confirm({
       title: 'Close this posting?',
-      message: `"${posting.title}" will stop accepting candidates. A closed posting can't be edited or reopened.`,
+      message: `"${posting.title}" will stop accepting candidates. Closed postings can't be edited or reopened.`,
       confirmLabel: 'Close posting',
     })
       .pipe(switchMap(() => this.withBusy(this.service.close(posting.id))))
       .subscribe({
         next: (saved) => {
           this.posting.set(saved);
-          this.notifier.success('Posting closed.');
+          this.notifier.success('Posting closed');
         },
         error: (error: unknown) => this.notifier.error(error),
       });
@@ -140,27 +167,22 @@ export class JobPostingPage {
   protected delete(posting: JobPosting): void {
     this.confirm({
       title: 'Delete this draft?',
-      message: `"${posting.title}" will be permanently deleted.`,
-      confirmLabel: 'Delete',
+      message: `"${posting.title}" will be deleted permanently. This can't be undone.`,
+      confirmLabel: 'Delete draft',
     })
       .pipe(switchMap(() => this.withBusy(this.service.delete(posting.id))))
       .subscribe({
         next: () => {
-          this.notifier.success('Draft deleted.');
+          this.notifier.success('Draft deleted');
           void this.router.navigateByUrl('/job-postings');
         },
         error: (error: unknown) => this.notifier.error(error),
       });
   }
 
-  private isStatus(...statuses: JobPosting['status'][]): boolean {
-    const posting = this.current();
-    return !!posting && statuses.includes(posting.status);
-  }
-
   private confirm(data: ConfirmDialogData): Observable<true> {
     return this.dialog
-      .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, { data, width: '400px', maxWidth: '90vw' })
+      .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, { data, width: '420px', maxWidth: '90vw' })
       .afterClosed()
       .pipe(filter((confirmed): confirmed is true => confirmed === true));
   }
@@ -179,7 +201,9 @@ export class JobPostingPage {
         then(saved);
       },
       error: (error: unknown) => {
-        if (!applyServerErrors(this.form, error)) {
+        if (applyServerErrors(this.form, error)) {
+          this.notifier.message('Some fields need attention. Check the messages under each field.');
+        } else {
           this.notifier.error(error);
         }
       },

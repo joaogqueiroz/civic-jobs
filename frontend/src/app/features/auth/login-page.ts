@@ -1,7 +1,6 @@
 import { Component, inject, input, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { Router, RouterLink } from '@angular/router';
@@ -10,10 +9,12 @@ import { switchMap } from 'rxjs';
 import { applyServerErrors } from '../../core/api-errors';
 import { AuthService } from '../../core/auth.service';
 import { Notifier } from '../../core/notifier';
+import { formFieldDefaults } from '../../shared/form-field-defaults';
 
 @Component({
   selector: 'app-login-page',
-  imports: [ReactiveFormsModule, RouterLink, MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule],
+  imports: [ReactiveFormsModule, RouterLink, MatFormFieldModule, MatInputModule, MatButtonModule],
+  providers: [formFieldDefaults],
   templateUrl: './login-page.html',
   styleUrl: './auth-page.scss',
 })
@@ -50,7 +51,7 @@ export class LoginPage {
         error: (error: unknown) => {
           this.submitting.set(false);
           if (error instanceof HttpErrorResponse && error.status === 401) {
-            this.credentialsError.set('Invalid email or password.');
+            this.credentialsError.set("That email and password don't match an account. Check them and try again.");
           } else if (!applyServerErrors(this.form, error)) {
             this.notifier.error(error);
           }

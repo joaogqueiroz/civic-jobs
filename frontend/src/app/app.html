@@ -1,6 +1,6 @@
 <mat-toolbar class="toolbar">
   <a class="brand" routerLink="/job-postings">
-    <mat-icon aria-hidden="true">work</mat-icon>
+    <mat-icon class="brand-icon" aria-hidden="true">work</mat-icon>
     <span>CivicJobs</span>
   </a>
 
@@ -10,9 +10,7 @@
     @if (auth.currentUser(); as user) {
       <span class="user-name" data-testid="user-name">{{ user.fullName }}</span>
     }
-    <button mat-icon-button type="button" (click)="auth.logout()" aria-label="Log out">
-      <mat-icon>logout</mat-icon>
-    </button>
+    <button mat-button type="button" (click)="auth.logout()">Log out</button>
   }
 </mat-toolbar>
 

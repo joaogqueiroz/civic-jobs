@@ -1,29 +1,60 @@
 :host {
   display: flex;
   justify-content: center;
-  padding: 32px 16px;
+  padding-top: 24px;
 }
 
 .auth-card {
   width: 100%;
   max-width: 420px;
+  box-sizing: border-box;
+  padding: 32px;
+  background: var(--cj-surface);
+  border: 1px solid var(--cj-border);
+  border-radius: var(--cj-radius);
+}
+
+.subtitle {
+  margin: 8px 0 24px;
 }
 
 form {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-top: 16px;
+  gap: 8px;
 }
 
-mat-card-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 16px 16px;
+.submit {
+  width: 100%;
+  height: 48px;
+  margin-top: 8px;
+}
+
+.switch {
+  margin: 24px 0 0;
+  color: var(--cj-muted);
+
+  a {
+    color: var(--cj-primary);
+    font-weight: 600;
+  }
 }
 
 .form-error {
-  margin: 0 0 12px;
-  color: var(--mat-sys-error);
+  margin: 0 0 8px;
+  padding: 12px;
+  border-radius: var(--cj-radius);
+  background: #fbeceb;
+  color: #a23b32;
+  font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  :host {
+    padding-top: 0;
+  }
+
+  .auth-card {
+    padding: 24px 16px;
+  }
 }

@@ -1,177 +1,185 @@
 <a mat-button routerLink="/job-postings" class="back">
   <mat-icon>arrow_back</mat-icon>
-  My job postings
+  Job postings
 </a>
 
+<header class="page-header">
+  <h1 class="page-title">{{ isCreate() ? 'New posting' : (current()?.title ?? 'Job posting') }}</h1>
+  @if (current(); as p) {
+    <app-status-badge [status]="p.status" data-testid="status" />
+  }
+</header>
+
 @if (posting.isLoading() || busy()) {
-  <mat-progress-bar mode="indeterminate" />
+  <mat-progress-bar mode="indeterminate" aria-label="Working" />
 }
 
-@if (mode() === 'view') {
-  @if (current(); as p) {
-    <mat-card appearance="outlined">
-      <mat-card-header>
-        <mat-card-title>{{ p.title }}</mat-card-title>
-        <mat-card-subtitle>{{ p.department }} · {{ p.location }}</mat-card-subtitle>
-      </mat-card-header>
+@if (isCreate() || current()) {
+  <div class="layout">
+    <aside class="panel status-panel" aria-labelledby="status-title">
+      <h2 id="status-title" class="section-title">Status</h2>
 
-      <mat-card-content>
-        <div class="status-line">
-          <app-status-badge [status]="p.status" data-testid="status" />
-          <span>Closes {{ p.closingDate | date: 'mediumDate' : 'UTC' }}</span>
-        </div>
+      <ol class="track">
+        @for (step of steps; track step) {
+          <li [class]="'step ' + stepState(step)" [attr.aria-current]="stepState(step) === 'current' ? 'step' : null">
+            <span class="marker" aria-hidden="true"></span>
+            <span class="step-label">{{ step }}</span>
+          </li>
+        }
+      </ol>
 
-        <dl class="details">
-          <dt>Employment type</dt>
-          <dd>{{ employmentTypeLabel(p.employmentType) }}</dd>
-          <dt>Salary</dt>
-          <dd>
-            {{ p.salaryMin | currency: 'USD' : 'symbol' : '1.0-0' }} –
-            {{ p.salaryMax | currency: 'USD' : 'symbol' : '1.0-0' }}
-          </dd>
-          <dt>Last updated</dt>
-          <dd>{{ p.updatedAt | date: 'medium' }}</dd>
-        </dl>
-
-        <p class="description">{{ p.description }}</p>
-      </mat-card-content>
-
-      <mat-card-actions class="actions">
-        @if (canEdit()) {
-          <a mat-stroked-button [routerLink]="['/job-postings', p.id, 'edit']" [disabled]="busy()">
-            <mat-icon>edit</mat-icon>
-            Edit
-          </a>
+      @if (current(); as p) {
+        @switch (p.status) {
+          @case ('Draft') {
+            <p class="small muted">
+              Not visible to candidates yet. Publish it when the details are ready. The closing date must be after
+              today.
+            </p>
+            <button mat-flat-button type="button" class="full-width" (click)="publish(p)" [disabled]="busy()">
+              Publish
+            </button>
+            <button mat-button type="button" class="danger-text full-width" (click)="delete(p)" [disabled]="busy()">
+              Delete draft
+            </button>
+          }
+          @case ('Open') {
+            <p class="small muted">
+              Accepting candidates until <span class="num">{{ p.closingDate | date: 'MMM d, y' : 'UTC' }}</span>.
+              Close it when the position is filled.
+            </p>
+            <button mat-flat-button type="button" class="full-width" (click)="close(p)" [disabled]="busy()">
+              Close
+            </button>
+          }
+          @case ('Closed') {
+            <p class="small muted">No longer accepting candidates. Closed postings are kept as a record and can't be edited.</p>
+          }
         }
-        @if (canPublish()) {
-          <button mat-flat-button type="button" (click)="publish(p)" [disabled]="busy()">
-            <mat-icon>publish</mat-icon>
-            Publish
-          </button>
-        }
-        @if (canClose()) {
-          <button mat-flat-button type="button" (click)="close(p)" [disabled]="busy()">
-            <mat-icon>block</mat-icon>
-            Close
-          </button>
-        }
-        @if (canDelete()) {
-          <button mat-button type="button" class="danger" (click)="delete(p)" [disabled]="busy()">
-            <mat-icon>delete</mat-icon>
-            Delete
-          </button>
-        }
-      </mat-card-actions>
-    </mat-card>
-  }
-} @else if (mode() === 'create' || current()) {
-  <mat-card appearance="outlined">
-    <mat-card-header>
-      <mat-card-title>{{ mode() === 'create' ? 'New job posting' : 'Edit job posting' }}</mat-card-title>
-      @if (mode() === 'create') {
-        <mat-card-subtitle>It's saved as a Draft. Publish it when it's ready.</mat-card-subtitle>
+      } @else {
+        <p class="small muted">New postings start as a draft. You can publish it once it's created.</p>
       }
-    </mat-card-header>
+    </aside>
 
-    <mat-card-content>
-      <form [formGroup]="form" (ngSubmit)="save()" novalidate class="form">
-        <mat-form-field appearance="outline" class="full">
-          <mat-label>Title</mat-label>
-          <input matInput formControlName="title" />
-          @if (form.controls.title.hasError('server')) {
-            <mat-error>{{ form.controls.title.getError('server') }}</mat-error>
-          } @else if (form.controls.title.hasError('required')) {
-            <mat-error>Title is required.</mat-error>
-          } @else if (form.controls.title.invalid) {
-            <mat-error>Use 3 to 150 characters.</mat-error>
-          }
-        </mat-form-field>
+    <form class="panel form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (!isClosed()) {
+        <p class="small muted required-note">All fields are required.</p>
+      }
 
-        <mat-form-field appearance="outline">
-          <mat-label>Department</mat-label>
-          <input matInput formControlName="department" />
-          @if (form.controls.department.hasError('server')) {
-            <mat-error>{{ form.controls.department.getError('server') }}</mat-error>
-          } @else if (form.controls.department.hasError('required')) {
-            <mat-error>Department is required.</mat-error>
-          } @else if (form.controls.department.invalid) {
-            <mat-error>Use at most 100 characters.</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Location</mat-label>
-          <input matInput formControlName="location" />
-          @if (form.controls.location.hasError('server')) {
-            <mat-error>{{ form.controls.location.getError('server') }}</mat-error>
-          } @else if (form.controls.location.hasError('required')) {
-            <mat-error>Location is required.</mat-error>
-          } @else if (form.controls.location.invalid) {
-            <mat-error>Use at most 100 characters.</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Employment type</mat-label>
-          <mat-select formControlName="employmentType">
-            @for (type of employmentTypes; track type.value) {
-              <mat-option [value]="type.value">{{ type.label }}</mat-option>
+      <section aria-labelledby="position-title">
+        <h2 id="position-title" class="section-title">Position</h2>
+        <div class="fields">
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Title</mat-label>
+            <input matInput formControlName="title" />
+            @if (form.controls.title.hasError('server')) {
+              <mat-error>{{ form.controls.title.getError('server') }}</mat-error>
+            } @else if (form.controls.title.hasError('required')) {
+              <mat-error>Enter a title.</mat-error>
+            } @else if (form.controls.title.invalid) {
+              <mat-error>Use 3 to 150 characters.</mat-error>
             }
-          </mat-select>
-          @if (form.controls.employmentType.hasError('server')) {
-            <mat-error>{{ form.controls.employmentType.getError('server') }}</mat-error>
-          }
-        </mat-form-field>
+          </mat-form-field>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Closing date</mat-label>
-          <input matInput type="date" formControlName="closingDate" [min]="today" />
-          @if (form.controls.closingDate.hasError('server')) {
-            <mat-error>{{ form.controls.closingDate.getError('server') }}</mat-error>
-          } @else if (form.controls.closingDate.hasError('required')) {
-            <mat-error>Closing date is required.</mat-error>
-          }
-        </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Department</mat-label>
+            <input matInput formControlName="department" />
+            @if (form.controls.department.hasError('server')) {
+              <mat-error>{{ form.controls.department.getError('server') }}</mat-error>
+            } @else if (form.controls.department.hasError('required')) {
+              <mat-error>Enter the department.</mat-error>
+            } @else if (form.controls.department.invalid) {
+              <mat-error>Use at most 100 characters.</mat-error>
+            }
+          </mat-form-field>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Minimum salary (USD)</mat-label>
-          <input matInput type="number" min="0" step="1000" formControlName="salaryMin" />
-          @if (form.controls.salaryMin.hasError('server')) {
-            <mat-error>{{ form.controls.salaryMin.getError('server') }}</mat-error>
-          } @else if (form.controls.salaryMin.invalid) {
-            <mat-error>Must be greater than zero.</mat-error>
-          }
-        </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Location</mat-label>
+            <input matInput formControlName="location" />
+            @if (form.controls.location.hasError('server')) {
+              <mat-error>{{ form.controls.location.getError('server') }}</mat-error>
+            } @else if (form.controls.location.hasError('required')) {
+              <mat-error>Enter the work location.</mat-error>
+            } @else if (form.controls.location.invalid) {
+              <mat-error>Use at most 100 characters.</mat-error>
+            }
+          </mat-form-field>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Maximum salary (USD)</mat-label>
-          <input matInput type="number" min="0" step="1000" formControlName="salaryMax" />
-          @if (form.controls.salaryMax.hasError('server')) {
-            <mat-error>{{ form.controls.salaryMax.getError('server') }}</mat-error>
-          } @else if (form.controls.salaryMax.invalid) {
-            <mat-error>Must be greater than zero.</mat-error>
-          }
-        </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Employment type</mat-label>
+            <mat-select formControlName="employmentType">
+              @for (type of employmentTypes; track type.value) {
+                <mat-option [value]="type.value">{{ type.label }}</mat-option>
+              }
+            </mat-select>
+            @if (form.controls.employmentType.hasError('server')) {
+              <mat-error>{{ form.controls.employmentType.getError('server') }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </section>
 
-        <mat-form-field appearance="outline" class="full">
-          <mat-label>Description</mat-label>
-          <textarea matInput rows="6" formControlName="description"></textarea>
-          @if (form.controls.description.hasError('server')) {
-            <mat-error>{{ form.controls.description.getError('server') }}</mat-error>
-          } @else if (form.controls.description.hasError('required')) {
-            <mat-error>Description is required.</mat-error>
-          } @else if (form.controls.description.invalid) {
-            <mat-error>Use at most 4,000 characters.</mat-error>
-          }
-        </mat-form-field>
+      <section aria-labelledby="pay-title">
+        <h2 id="pay-title" class="section-title">Pay</h2>
+        <div class="fields">
+          <mat-form-field appearance="outline">
+            <mat-label>Minimum (USD)</mat-label>
+            <span matTextPrefix>$&nbsp;</span>
+            <input matInput class="num" type="number" min="0" step="1000" formControlName="salaryMin" />
+            @if (form.controls.salaryMin.hasError('server')) {
+              <mat-error>{{ form.controls.salaryMin.getError('server') }}</mat-error>
+            } @else if (form.controls.salaryMin.invalid) {
+              <mat-error>Enter an amount greater than zero.</mat-error>
+            }
+          </mat-form-field>
 
-        <div class="form-actions full">
-          <a mat-button [routerLink]="mode() === 'edit' ? ['/job-postings', id()] : ['/job-postings']">Cancel</a>
+          <mat-form-field appearance="outline">
+            <mat-label>Maximum (USD)</mat-label>
+            <span matTextPrefix>$&nbsp;</span>
+            <input matInput class="num" type="number" min="0" step="1000" formControlName="salaryMax" />
+            @if (form.controls.salaryMax.hasError('server')) {
+              <mat-error>{{ form.controls.salaryMax.getError('server') }}</mat-error>
+            } @else if (form.controls.salaryMax.invalid) {
+              <mat-error>Enter an amount greater than zero.</mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </section>
+
+      <section aria-labelledby="details-title">
+        <h2 id="details-title" class="section-title">Details</h2>
+        <div class="fields">
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Description</mat-label>
+            <textarea matInput rows="6" formControlName="description"></textarea>
+            @if (form.controls.description.hasError('server')) {
+              <mat-error>{{ form.controls.description.getError('server') }}</mat-error>
+            } @else if (form.controls.description.hasError('required')) {
+              <mat-error>Describe the role and its duties.</mat-error>
+            } @else if (form.controls.description.invalid) {
+              <mat-error>Use at most 4,000 characters.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Closing date</mat-label>
+            <input matInput class="num" type="date" formControlName="closingDate" [min]="today" />
+            @if (form.controls.closingDate.hasError('server')) {
+              <mat-error>{{ form.controls.closingDate.getError('server') }}</mat-error>
+            } @else if (form.controls.closingDate.hasError('required')) {
+              <mat-error>Choose a closing date, today or later.</mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </section>
+
+      @if (!isClosed()) {
+        <div class="form-actions">
+          <a mat-button routerLink="/job-postings">Cancel</a>
           <button mat-flat-button type="submit" [disabled]="busy()">
-            {{ mode() === 'create' ? 'Create draft' : 'Save' }}
+            {{ isCreate() ? 'Create posting' : 'Save changes' }}
           </button>
         </div>
-      </form>
-    </mat-card-content>
-  </mat-card>
+      }
+    </form>
+  </div>
 }

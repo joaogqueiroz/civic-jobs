@@ -6,14 +6,18 @@ import { ProblemDetails } from './models';
 export function problemMessage(error: unknown): string {
   if (error instanceof HttpErrorResponse) {
     if (error.status === 0) {
-      return 'Cannot reach the server. Check that the APIs are running.';
+      return "Can't reach the server. Check that both APIs are running, then try again.";
+    }
+
+    if (error.status === 404) {
+      return "This posting doesn't exist or isn't yours. Pick one from your job postings.";
     }
 
     const problem = error.error as ProblemDetails | null;
-    return problem?.detail ?? problem?.title ?? `Request failed (${error.status}).`;
+    return problem?.detail ?? problem?.title ?? `The request failed (${error.status}). Try again.`;
   }
 
-  return 'Something went wrong.';
+  return 'Something went wrong. Try again.';
 }
 
 /**
