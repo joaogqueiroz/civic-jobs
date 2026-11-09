@@ -22,7 +22,7 @@ public class User
         {
             Id = Guid.NewGuid(),
             Email = NormalizeEmail(email),
-            FullName = fullName,
+            FullName = fullName.Trim(),
             PasswordHash = passwordHash,
             CreatedAt = createdAt
         };
