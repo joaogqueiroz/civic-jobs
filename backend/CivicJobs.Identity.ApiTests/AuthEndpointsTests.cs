@@ -84,6 +84,20 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
     }
 
+    [Fact]
+    [Trait("Requirement", "FR-02")]
+    public async Task Login_WithWrongPassword_Returns401ProblemDetails()
+    {
+        var email = UniqueEmail();
+        await RegisterAsync(email);
+
+        var response = await _client.PostAsJsonAsync("/api/auth/login", new { email, password = "Wrong@12345" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        (await response.Content.ReadFromJsonAsync<JsonElement>()).TryGetProperty("accessToken", out _).ShouldBeFalse();
+    }
+
     private Task<HttpResponseMessage> RegisterAsync(string email) =>
         _client.PostAsJsonAsync("/api/auth/register", new { fullName = "Jane Doe", email, password = Password });
 

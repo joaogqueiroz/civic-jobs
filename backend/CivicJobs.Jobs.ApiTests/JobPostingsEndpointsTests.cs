@@ -80,6 +80,23 @@ public sealed class JobPostingsEndpointsTests(JobsApiFactory factory) : IClassFi
         (await ReadPostingAsync(get)).Status.ShouldBe(JobPostingStatus.Closed);
     }
 
+    [Fact]
+    [Trait("Rule", "BR-06")]
+    public async Task PublishPosting_WhenClosed_Returns409ProblemDetails()
+    {
+        var client = await factory.CreateClientForNewRecruiterAsync();
+        var posting = await CreatePostingAsync(client);
+        (await client.PostAsync($"/api/job-postings/{posting.Id}/publish", null)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await client.PostAsync($"/api/job-postings/{posting.Id}/close", null)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var response = await client.PostAsync($"/api/job-postings/{posting.Id}/publish", null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("detail").GetString()
+            .ShouldBe("This posting is closed and can't be published again.");
+    }
+
     private static async Task<JobPostingViewModel> CreatePostingAsync(HttpClient client)
     {
         var response = await client.PostAsJsonAsync("/api/job-postings", NewPosting());
