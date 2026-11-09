@@ -24,7 +24,7 @@ public sealed class AuthService(
 
         if (await users.GetByEmailAsync(email, cancellationToken) is not null)
         {
-            throw new ConflictException("Email is already in use.");
+            throw new ConflictException("An account with this email already exists. Log in, or use a different email.");
         }
 
         var user = User.Create(

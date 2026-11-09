@@ -130,7 +130,7 @@ public sealed class JobPostingService(
         // A posting owned by another user is reported as not found, so the API doesn't reveal that the id exists (BR-08).
         if (posting is null || posting.CreatedByUserId != userId)
         {
-            throw new NotFoundException($"Job posting {id} was not found.");
+            throw new NotFoundException("We couldn't find that job posting. It may have been deleted.");
         }
 
         return posting;

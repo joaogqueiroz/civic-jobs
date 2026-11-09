@@ -100,7 +100,7 @@ public class JobPosting
     {
         if (Status == JobPostingStatus.Closed)
         {
-            throw new InvalidStatusTransitionException("A closed job posting can't be edited.");
+            throw new InvalidStatusTransitionException("This posting is closed, so it can't be edited.");
         }
     }
 
@@ -108,7 +108,9 @@ public class JobPosting
     {
         if (Status != JobPostingStatus.Draft)
         {
-            throw new InvalidStatusTransitionException($"Only a Draft job posting can be published. Current status: {Status}.");
+            throw new InvalidStatusTransitionException(Status == JobPostingStatus.Open
+                ? "This posting is already published."
+                : "This posting is closed and can't be published again.");
         }
 
         EnsureClosingDateIsAfterToday(ClosingDate, publishedAt);
@@ -121,7 +123,9 @@ public class JobPosting
     {
         if (Status != JobPostingStatus.Open)
         {
-            throw new InvalidStatusTransitionException($"Only an Open job posting can be closed. Current status: {Status}.");
+            throw new InvalidStatusTransitionException(Status == JobPostingStatus.Draft
+                ? "Publish this draft before closing it."
+                : "This posting is already closed.");
         }
 
         Status = JobPostingStatus.Closed;
@@ -132,7 +136,7 @@ public class JobPosting
     {
         if (Status != JobPostingStatus.Draft)
         {
-            throw new InvalidStatusTransitionException("Only a Draft job posting can be deleted. Published postings are kept as records.");
+            throw new InvalidStatusTransitionException("Only drafts can be deleted. Published postings are kept as a public record.");
         }
     }
 
@@ -152,17 +156,17 @@ public class JobPosting
 
         if (!Enum.IsDefined(employmentType))
         {
-            throw new DomainValidationException("EmploymentType must be FullTime, PartTime or Temporary.");
+            throw new DomainValidationException("Choose an employment type: full time, part time or temporary.");
         }
 
         if (salaryMin <= 0)
         {
-            throw new DomainValidationException("SalaryMin must be greater than zero.");
+            throw new DomainValidationException("Enter a minimum salary greater than zero.");
         }
 
         if (salaryMax < salaryMin)
         {
-            throw new DomainValidationException("SalaryMax must be greater than or equal to SalaryMin.");
+            throw new DomainValidationException("The maximum salary can't be lower than the minimum salary.");
         }
     }
 
@@ -170,7 +174,7 @@ public class JobPosting
     {
         if (closingDate < ToDate(now))
         {
-            throw new DomainValidationException("ClosingDate can't be in the past.");
+            throw new DomainValidationException("Choose a closing date of today or later.");
         }
     }
 
@@ -178,7 +182,7 @@ public class JobPosting
     {
         if (closingDate <= ToDate(now))
         {
-            throw new InvalidStatusTransitionException("An Open job posting must have a closing date after today.");
+            throw new InvalidStatusTransitionException("Choose a closing date after today. Open postings must close in the future.");
         }
     }
 

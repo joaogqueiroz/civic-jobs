@@ -5,7 +5,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
-import { applyServerErrors } from '../../core/api-errors';
+import { HttpErrorResponse } from '@angular/common/http';
+import { applyServerErrors, problemMessage } from '../../core/api-errors';
 import { AuthService } from '../../core/auth.service';
 import { Notifier } from '../../core/notifier';
 import { formFieldDefaults } from '../../shared/form-field-defaults';
@@ -61,7 +62,11 @@ export class RegisterPage {
         },
         error: (error: unknown) => {
           this.submitting.set(false);
-          if (!applyServerErrors(this.form, error)) {
+          if (error instanceof HttpErrorResponse && error.status === 409) {
+            // The email is already registered: show it on the field the user has to change.
+            this.form.controls.email.setErrors({ server: problemMessage(error) });
+            this.form.controls.email.markAsTouched();
+          } else if (!applyServerErrors(this.form, error)) {
             this.notifier.error(error);
           }
         },
