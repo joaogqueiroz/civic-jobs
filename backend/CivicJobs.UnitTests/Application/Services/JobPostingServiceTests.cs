@@ -58,6 +58,7 @@ public class JobPostingServiceTests
 
         var exception = await create.ShouldThrowAsync<ValidationException>();
         exception.Errors.ShouldContain(e => e.PropertyName == nameof(CreateJobPostingInputModel.Title));
+        await ShouldNotHaveSavedAnythingAsync();
     }
 
     [Fact]
@@ -120,9 +121,13 @@ public class JobPostingServiceTests
 
     #region List
 
+    // These unit tests only prove the service passes the caller's id and the status filter to the repository
+    // and maps the result. The actual filtering by owner and status is done in SQL, so it is covered by the
+    // integration tests in CivicJobs.UnitTests/Infrastructure/Persistence/JobPostingRepositoryTests.cs.
+
     [Fact]
     [Trait("Requirement", "FR-05")]
-    public async Task ListAsync_WithStatus_ReturnsCallerPostingsWithThatStatus()
+    public async Task ListAsync_WithStatus_PassesOwnerAndStatusToRepositoryAndMapsResult()
     {
         var open = StoredPosting(_userId);
         open.Publish(Now);
@@ -137,7 +142,7 @@ public class JobPostingServiceTests
 
     [Fact]
     [Trait("Requirement", "FR-05")]
-    public async Task ListAsync_WithoutStatus_ReturnsAllCallerPostings()
+    public async Task ListAsync_WithoutStatus_PassesOwnerAndNoStatusToRepositoryAndMapsResult()
     {
         var first = StoredPosting(_userId);
         var second = StoredPosting(_userId);
@@ -185,6 +190,8 @@ public class JobPostingServiceTests
         var update = () => CreateService().UpdateAsync(_userId, posting.Id, input, CancellationToken.None);
 
         await update.ShouldThrowAsync<ValidationException>();
+
+        await ShouldNotHaveSavedAnythingAsync();
     }
 
     [Fact]
@@ -196,6 +203,8 @@ public class JobPostingServiceTests
         var update = () => CreateService().UpdateAsync(_userId, posting.Id, ValidUpdateInput(), CancellationToken.None);
 
         await update.ShouldThrowAsync<NotFoundException>();
+
+        await ShouldNotHaveSavedAnythingAsync();
     }
 
     [Fact]
@@ -209,6 +218,8 @@ public class JobPostingServiceTests
         var update = () => CreateService().UpdateAsync(_userId, posting.Id, ValidUpdateInput(), CancellationToken.None);
 
         await update.ShouldThrowAsync<InvalidStatusTransitionException>();
+
+        await ShouldNotHaveSavedAnythingAsync();
     }
 
     #endregion
@@ -241,6 +252,8 @@ public class JobPostingServiceTests
         var delete = () => CreateService().DeleteAsync(_userId, posting.Id, CancellationToken.None);
 
         await delete.ShouldThrowAsync<InvalidStatusTransitionException>();
+
+        await ShouldNotHaveSavedAnythingAsync();
     }
 
     [Fact]
@@ -252,6 +265,8 @@ public class JobPostingServiceTests
         var delete = () => CreateService().DeleteAsync(_userId, posting.Id, CancellationToken.None);
 
         await delete.ShouldThrowAsync<NotFoundException>();
+
+        await ShouldNotHaveSavedAnythingAsync();
     }
 
     #endregion
@@ -284,6 +299,8 @@ public class JobPostingServiceTests
         var publish = () => CreateService().PublishAsync(_userId, posting.Id, CancellationToken.None);
 
         await publish.ShouldThrowAsync<InvalidStatusTransitionException>();
+
+        await ShouldNotHaveSavedAnythingAsync();
     }
 
     [Fact]
@@ -295,6 +312,8 @@ public class JobPostingServiceTests
         var publish = () => CreateService().PublishAsync(_userId, posting.Id, CancellationToken.None);
 
         await publish.ShouldThrowAsync<NotFoundException>();
+
+        await ShouldNotHaveSavedAnythingAsync();
     }
 
     #endregion
@@ -328,6 +347,8 @@ public class JobPostingServiceTests
         var close = () => CreateService().CloseAsync(_userId, posting.Id, CancellationToken.None);
 
         await close.ShouldThrowAsync<InvalidStatusTransitionException>();
+
+        await ShouldNotHaveSavedAnythingAsync();
     }
 
     [Fact]
@@ -340,9 +361,18 @@ public class JobPostingServiceTests
         var close = () => CreateService().CloseAsync(_userId, posting.Id, CancellationToken.None);
 
         await close.ShouldThrowAsync<NotFoundException>();
+
+        await ShouldNotHaveSavedAnythingAsync();
     }
 
     #endregion
+
+    private async Task ShouldNotHaveSavedAnythingAsync()
+    {
+        await _repository.DidNotReceiveWithAnyArgs().AddAsync(default!, default);
+        await _repository.DidNotReceiveWithAnyArgs().UpdateAsync(default!, default);
+        await _repository.DidNotReceiveWithAnyArgs().DeleteAsync(default!, default);
+    }
 
     private JobPostingService CreateService() =>
         new(

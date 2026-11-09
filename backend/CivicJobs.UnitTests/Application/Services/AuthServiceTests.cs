@@ -84,6 +84,7 @@ public class AuthServiceTests
         var register = () => CreateService().RegisterAsync(input, CancellationToken.None);
 
         await register.ShouldThrowAsync<ConflictException>();
+        await _users.DidNotReceiveWithAnyArgs().AddAsync(default!, default);
     }
 
     [Fact]
@@ -96,6 +97,7 @@ public class AuthServiceTests
 
         var exception = await register.ShouldThrowAsync<ValidationException>();
         exception.Errors.ShouldContain(e => e.PropertyName == nameof(RegisterInputModel.Password));
+        await _users.DidNotReceiveWithAnyArgs().AddAsync(default!, default);
     }
 
     #endregion
