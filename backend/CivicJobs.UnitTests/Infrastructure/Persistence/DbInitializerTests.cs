@@ -43,8 +43,8 @@ public sealed class DbInitializerTests : IDisposable
         await InitializeAsync();
 
         await using var context = CreateContext();
-        var users = await context.Users.OrderBy(u => u.Email).ToListAsync();
-        users.Select(u => u.Email).ShouldBe([FirstRecruiter, SecondRecruiter]);
+        var users = await context.Users.ToListAsync();
+        users.Select(u => u.Email).ShouldBe([FirstRecruiter, SecondRecruiter], ignoreOrder: true);
         users.ShouldAllBe(u => _passwordHasher.Verify(u.PasswordHash, "Demo@12345"));
     }
 
