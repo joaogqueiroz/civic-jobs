@@ -54,6 +54,7 @@ The two API test projects are separate on purpose: each web project has its own 
   - `NotFoundException`: the resource doesn't exist or belongs to another user (BR-08). Maps to 404.
   - `ConflictException`: the email is already in use (BR-01). Maps to 409.
   - `InvalidCredentialsException`: unknown email or wrong password, same message for both. Maps to 401.
+  - `UnauthorizedException`: a valid token whose user no longer exists. Maps to 401.
 - FluentValidation errors map to 400 with `ValidationProblemDetails`; other errors use `ProblemDetails`. Use a global exception handler (`IExceptionHandler`), no try/catch in controllers.
 - No secrets in code. JWT settings come from the `Jwt` configuration section; `appsettings.Development.json` holds a clearly fake dev key. Both APIs use the same issuer, audience and key.
 - Async all the way, pass `CancellationToken`.

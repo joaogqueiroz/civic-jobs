@@ -31,10 +31,10 @@ public class UserServiceTests
 
     [Fact]
     [Trait("Requirement", "FR-03")]
-    public async Task GetCurrentAsync_WhenUserDoesNotExist_ThrowsNotFoundException()
+    public async Task GetCurrentAsync_WhenUserDoesNotExist_ThrowsUnauthorizedException()
     {
         var get = () => new UserService(_users).GetCurrentAsync(Guid.NewGuid(), CancellationToken.None);
 
-        await get.ShouldThrowAsync<NotFoundException>();
+        await get.ShouldThrowAsync<UnauthorizedException>();
     }
 }

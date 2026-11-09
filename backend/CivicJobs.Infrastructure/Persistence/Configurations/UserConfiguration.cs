@@ -13,7 +13,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasKey(u => u.Id);
         builder.Property(u => u.Id).ValueGeneratedNever();
 
-        builder.Property(u => u.Email).IsRequired();
+        builder.Property(u => u.Email).IsRequired().HasMaxLength(254);
         builder.HasIndex(u => u.Email).IsUnique();
 
         builder.Property(u => u.FullName).IsRequired().HasMaxLength(100);

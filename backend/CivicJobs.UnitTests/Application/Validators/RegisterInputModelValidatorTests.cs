@@ -67,6 +67,26 @@ public class RegisterInputModelValidatorTests
         _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.Email);
     }
 
+    [Fact]
+    [Trait("Requirement", "FR-01")]
+    public void Validate_WhenEmailIsExactly254Chars_HasNoEmailError()
+    {
+        var model = ValidModel();
+        model.Email = EmailWithLength(254);
+
+        _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(m => m.Email);
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-01")]
+    public void Validate_WhenEmailIsLongerThan254Chars_HasEmailError()
+    {
+        var model = ValidModel();
+        model.Email = EmailWithLength(255);
+
+        _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.Email);
+    }
+
     #endregion
 
     #region Password: at least 8 chars, with a letter and a number
@@ -117,6 +137,12 @@ public class RegisterInputModelValidatorTests
     }
 
     #endregion
+
+    private static string EmailWithLength(int length)
+    {
+        const string domain = "@cityofexample.gov";
+        return new string('a', length - domain.Length) + domain;
+    }
 
     private static RegisterInputModel ValidModel() => new()
     {

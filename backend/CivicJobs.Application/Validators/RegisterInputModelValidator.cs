@@ -13,7 +13,8 @@ public sealed class RegisterInputModelValidator : AbstractValidator<RegisterInpu
 
         RuleFor(m => m.Email)
             .NotEmpty()
-            .EmailAddress();
+            .EmailAddress()
+            .MaximumLength(254);
 
         // The upper limit caps the work done by password hashing, so very long passwords can't slow the server down.
         RuleFor(m => m.Password)

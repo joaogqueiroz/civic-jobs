@@ -15,7 +15,8 @@ public sealed class CivicJobsDbContext(DbContextOptions<CivicJobsDbContext> opti
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
-        // SQLite can't sort or compare DateTimeOffset values, so they are stored as a sortable 64-bit number.
+        // SQLite can't sort or compare DateTimeOffset values, so they are stored as a 64-bit number (ticks + offset,
+        // 0.1 ms precision). That number sorts by instant only because every timestamp is UTC (TimeProvider.GetUtcNow()).
         configurationBuilder.Properties<DateTimeOffset>().HaveConversion<DateTimeOffsetToBinaryConverter>();
     }
 }

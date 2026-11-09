@@ -22,7 +22,10 @@ public sealed class JobPostingRepository(CivicJobsDbContext context) : IJobPosti
             query = query.Where(p => p.Status == status.Value);
         }
 
-        return await query.OrderByDescending(p => p.CreatedAt).ToListAsync(cancellationToken);
+        return await query
+            .OrderByDescending(p => p.CreatedAt)
+            .ThenBy(p => p.Id)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task AddAsync(JobPosting posting, CancellationToken cancellationToken)

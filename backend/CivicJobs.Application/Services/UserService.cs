@@ -8,8 +8,9 @@ public sealed class UserService(IUserRepository users) : IUserService
 {
     public async Task<UserViewModel> GetCurrentAsync(Guid userId, CancellationToken cancellationToken)
     {
+        // A valid token for a user that no longer exists is treated as not authenticated (401), as the contract says.
         var user = await users.GetByIdAsync(userId, cancellationToken)
-            ?? throw new NotFoundException($"User {userId} was not found.");
+            ?? throw new UnauthorizedException("The user for this token no longer exists.");
 
         return UserViewModel.FromEntity(user);
     }

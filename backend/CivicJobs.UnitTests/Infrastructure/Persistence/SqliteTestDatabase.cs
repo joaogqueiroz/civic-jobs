@@ -12,17 +12,29 @@ namespace CivicJobs.UnitTests.Infrastructure.Persistence;
 public sealed class SqliteTestDatabase : IDisposable
 {
     private readonly SqliteConnection _connection = new("DataSource=:memory:");
+    private readonly List<CivicJobsDbContext> _contexts = [];
 
     public SqliteTestDatabase()
     {
         _connection.Open();
-
-        using var context = CreateContext();
-        context.Database.EnsureCreated();
+        CreateContext().Database.EnsureCreated();
     }
 
-    public CivicJobsDbContext CreateContext() =>
-        new(new DbContextOptionsBuilder<CivicJobsDbContext>().UseSqlite(_connection).Options);
+    public CivicJobsDbContext CreateContext()
+    {
+        var context = new CivicJobsDbContext(
+            new DbContextOptionsBuilder<CivicJobsDbContext>().UseSqlite(_connection).Options);
+        _contexts.Add(context);
+        return context;
+    }
 
-    public void Dispose() => _connection.Dispose();
+    public void Dispose()
+    {
+        foreach (var context in _contexts)
+        {
+            context.Dispose();
+        }
+
+        _connection.Dispose();
+    }
 }

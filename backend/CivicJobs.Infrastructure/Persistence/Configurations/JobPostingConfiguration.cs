@@ -21,6 +21,8 @@ public sealed class JobPostingConfiguration : IEntityTypeConfiguration<JobPostin
         builder.Property(p => p.EmploymentType).HasConversion<string>().HasMaxLength(20);
         builder.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
 
+        // SQLite stores decimals as TEXT and ignores precision. Queries that filter or sort by salary
+        // can't be translated to SQL on SQLite; do that in memory or store salaries as integer cents.
         builder.Property(p => p.SalaryMin).HasPrecision(18, 2);
         builder.Property(p => p.SalaryMax).HasPrecision(18, 2);
 
