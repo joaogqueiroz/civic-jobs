@@ -41,6 +41,15 @@ public class UserTests
     }
 
     [Fact]
+    [Trait("Requirement", "FR-01")]
+    public void Create_WithSurroundingSpacesInFullName_StoresTrimmedFullName()
+    {
+        var user = User.Create("recruiter@cityofexample.gov", "  Jane Doe  ", "hashed-password", Now);
+
+        user.FullName.ShouldBe("Jane Doe");
+    }
+
+    [Fact]
     [Trait("Rule", "BR-01")]
     public void NormalizeEmail_WithMixedCaseAndSpaces_ReturnsTrimmedLowercase()
     {
