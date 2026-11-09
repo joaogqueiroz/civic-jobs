@@ -96,6 +96,7 @@ Where tests go:
 Test names: `Method_State_ExpectedResult`, for example `Publish_WhenClosingDateIsInThePast_ThrowsDomainException`.
 Tag each test with the PRD id it covers: `[Trait("Requirement", "FR-08")]` or `[Trait("Rule", "BR-05")]`, so `dotnet test --filter Rule=BR-05` runs the tests for one rule.
 One behavior per test. Don't write tests that only check a mock was called when a real assertion on the result is possible.
+Group related tests (or members) with `#region Name` / `#endregion`, not section comments like `// Register`. Comments are only for explaining why the code does something.
 
 ## Commands
 
