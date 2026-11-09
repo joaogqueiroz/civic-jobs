@@ -28,7 +28,7 @@ backend/
                                Web (shared by both APIs: GlobalExceptionHandler, JWT bearer, Swagger, ClaimsPrincipal.GetUserId).
                                References Application and Core.
   CivicJobs.Identity.Api/      AuthController, UsersController. References Application and Infrastructure.
-  CivicJobs.Jobs.Api/          JobPostingsController. References Application and Infrastructure.
+  CivicJobs.Jobs.Api/          JobPostingsController, PublicJobPostingsController (anonymous, FR-11). References Application and Infrastructure.
   CivicJobs.UnitTests/         Core/, Application/, Infrastructure/ (folders mirror the layers)
   CivicJobs.Identity.ApiTests/ endpoint tests with WebApplicationFactory
   CivicJobs.Jobs.ApiTests/     endpoint tests with WebApplicationFactory
@@ -121,6 +121,7 @@ frontend/src/app/
   core/           auth service, token storage, functional HTTP interceptor, auth guard, models
   features/auth/            login and register pages
   features/job-postings/    list (filter by status), form (create/edit), detail (publish, close, delete), job-postings.service.ts
+  features/open-positions/  public list of open postings for candidates (anonymous, FR-11)
   shared/         small reusable components (status badge, confirm dialog)
 ```
 

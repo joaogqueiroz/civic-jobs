@@ -20,7 +20,7 @@ The problem, scope and requirement ids (FR-xx, BR-xx) are in [PRD.md](PRD.md). T
 | 6 | I can **close** an Open posting. A Closed posting can't be edited or reopened | FR-09, BR-06 |
 | 7 | I can delete only **Draft** postings. Published postings are kept for public records | FR-10, BR-07 |
 | 8 | I can't see, edit or delete postings created by another recruiter | BR-08 |
-| 9 | ~~Anyone, without logging in, can list Open postings~~ **Out of scope for v1.0** | FR-11 |
+| 9 | Anyone, without logging in, can list Open postings that close today or later | FR-11 |
 
 ## Domain model
 
@@ -88,7 +88,7 @@ Both APIs use the same JWT settings (issuer, audience, signing key), so a token 
 | DELETE | /api/job-postings/{id} | Bearer | 204 | 401, 404, 409 |
 | POST | /api/job-postings/{id}/publish | Bearer | 200 | 401, 404, 409 |
 | POST | /api/job-postings/{id}/close | Bearer | 200 | 401, 404, 409 |
-| ~~GET~~ | ~~/api/public/job-postings~~ | ~~Anonymous~~ | ~~200 + Open postings~~ | **Out of scope for v1.0 (FR-11)** |
+| GET | /api/public/job-postings | Anonymous | 200 + Open postings closing today or later, soonest first (no owner, status or timestamps) | |
 
 A posting owned by another user returns **404**, not 403, so the API doesn't reveal that the id exists.
 
@@ -104,6 +104,7 @@ Errors use `ProblemDetails` / `ValidationProblemDetails`.
 | New posting | /job-postings/new | Logged in |
 | Posting detail (publish, close, delete) | /job-postings/:id | Logged in |
 | Edit posting | /job-postings/:id/edit | Logged in |
+| Open positions (public list for candidates, FR-11) | /open-positions | Anonymous |
 
 ## Seed data
 
