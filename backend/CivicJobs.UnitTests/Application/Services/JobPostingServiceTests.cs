@@ -218,6 +218,8 @@ public class JobPostingServiceTests
         var update = () => CreateService().UpdateAsync(_userId, posting.Id, input, CancellationToken.None);
 
         await update.ShouldThrowAsync<NotFoundException>();
+
+        await ShouldNotHaveSavedAnythingAsync();
     }
 
     [Fact]
@@ -233,6 +235,8 @@ public class JobPostingServiceTests
         var update = () => CreateService().UpdateAsync(_userId, posting.Id, input, CancellationToken.None);
 
         await update.ShouldThrowAsync<InvalidStatusTransitionException>();
+
+        await ShouldNotHaveSavedAnythingAsync();
     }
 
     [Fact]
