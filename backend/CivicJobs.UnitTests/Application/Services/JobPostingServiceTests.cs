@@ -22,7 +22,7 @@ public class JobPostingServiceTests
     private readonly FakeTimeProvider _timeProvider = new(Now);
     private readonly IJobPostingRepository _repository = Substitute.For<IJobPostingRepository>();
 
-    // Create
+    #region Create
 
     [Fact]
     [Trait("Requirement", "FR-04")]
@@ -79,7 +79,9 @@ public class JobPostingServiceTests
             () => saved.CreatedByUserId.ShouldBe(userId));
     }
 
-    // Get by id
+    #endregion
+
+    #region Get by id
 
     [Fact]
     [Trait("Requirement", "FR-06")]
@@ -114,7 +116,9 @@ public class JobPostingServiceTests
         await get.ShouldThrowAsync<NotFoundException>();
     }
 
-    // List
+    #endregion
+
+    #region List
 
     [Fact]
     [Trait("Requirement", "FR-05")]
@@ -146,7 +150,9 @@ public class JobPostingServiceTests
         result.Select(p => p.Id).ShouldBe([first.Id, second.Id]);
     }
 
-    // Update
+    #endregion
+
+    #region Update
 
     [Fact]
     [Trait("Requirement", "FR-07")]
@@ -205,7 +211,9 @@ public class JobPostingServiceTests
         await update.ShouldThrowAsync<InvalidStatusTransitionException>();
     }
 
-    // Delete
+    #endregion
+
+    #region Delete
 
     [Fact]
     [Trait("Requirement", "FR-10")]
@@ -246,7 +254,9 @@ public class JobPostingServiceTests
         await delete.ShouldThrowAsync<NotFoundException>();
     }
 
-    // Publish
+    #endregion
+
+    #region Publish
 
     [Fact]
     [Trait("Requirement", "FR-08")]
@@ -287,7 +297,9 @@ public class JobPostingServiceTests
         await publish.ShouldThrowAsync<NotFoundException>();
     }
 
-    // Close
+    #endregion
+
+    #region Close
 
     [Fact]
     [Trait("Requirement", "FR-09")]
@@ -329,6 +341,8 @@ public class JobPostingServiceTests
 
         await close.ShouldThrowAsync<NotFoundException>();
     }
+
+    #endregion
 
     private JobPostingService CreateService() =>
         new(

@@ -11,7 +11,7 @@ public class JobPostingLifecycleTests
     private static readonly DateOnly Today = DateOnly.FromDateTime(Now.UtcDateTime);
     private static readonly DateTimeOffset Later = Now.AddHours(1);
 
-    // Publish
+    #region Publish
 
     [Fact]
     [Trait("Requirement", "FR-08")]
@@ -74,7 +74,9 @@ public class JobPostingLifecycleTests
         posting.Status.ShouldBe(status);
     }
 
-    // Close
+    #endregion
+
+    #region Close
 
     [Fact]
     [Trait("Requirement", "FR-09")]
@@ -104,7 +106,9 @@ public class JobPostingLifecycleTests
         posting.Status.ShouldBe(status);
     }
 
-    // Delete
+    #endregion
+
+    #region Delete
 
     [Fact]
     [Trait("Requirement", "FR-10")]
@@ -126,7 +130,9 @@ public class JobPostingLifecycleTests
         Should.Throw<InvalidStatusTransitionException>(posting.EnsureCanBeDeleted);
     }
 
-    // Update
+    #endregion
+
+    #region Update
 
     [Fact]
     [Trait("Requirement", "FR-07")]
@@ -263,6 +269,8 @@ public class JobPostingLifecycleTests
 
         update.ShouldThrow<DomainValidationException>();
     }
+
+    #endregion
 
     private static JobPosting DraftPosting(DateOnly? closingDate = null) =>
         JobPosting.Create(

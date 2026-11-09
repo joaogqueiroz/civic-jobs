@@ -32,7 +32,7 @@ public class AuthServiceTests
         _passwordHasher.Verify(PasswordHash, Password).Returns(true);
     }
 
-    // Register
+    #region Register
 
     [Fact]
     [Trait("Requirement", "FR-01")]
@@ -98,7 +98,9 @@ public class AuthServiceTests
         exception.Errors.ShouldContain(e => e.PropertyName == nameof(RegisterInputModel.Password));
     }
 
-    // Login
+    #endregion
+
+    #region Login
 
     [Fact]
     [Trait("Requirement", "FR-02")]
@@ -154,6 +156,8 @@ public class AuthServiceTests
 
         await login.ShouldThrowAsync<ValidationException>();
     }
+
+    #endregion
 
     private AuthService CreateService() =>
         new(

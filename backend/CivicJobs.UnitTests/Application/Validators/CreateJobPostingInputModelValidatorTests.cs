@@ -23,7 +23,7 @@ public class CreateJobPostingInputModelValidatorTests
         result.ShouldNotHaveAnyValidationErrors();
     }
 
-    // Title: required, 3 to 150 chars
+    #region Title: required, 3 to 150 chars
 
     [Theory]
     [Trait("Rule", "BR-03")]
@@ -70,7 +70,9 @@ public class CreateJobPostingInputModelValidatorTests
         _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.Title);
     }
 
-    // Department: required, up to 100 chars
+    #endregion
+
+    #region Department: required, up to 100 chars
 
     [Theory]
     [Trait("Rule", "BR-03")]
@@ -105,7 +107,9 @@ public class CreateJobPostingInputModelValidatorTests
         _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.Department);
     }
 
-    // Description: required, up to 4,000 chars
+    #endregion
+
+    #region Description: required, up to 4,000 chars
 
     [Theory]
     [Trait("Rule", "BR-03")]
@@ -140,7 +144,9 @@ public class CreateJobPostingInputModelValidatorTests
         _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.Description);
     }
 
-    // Location: required, up to 100 chars
+    #endregion
+
+    #region Location: required, up to 100 chars
 
     [Theory]
     [Trait("Rule", "BR-03")]
@@ -175,7 +181,9 @@ public class CreateJobPostingInputModelValidatorTests
         _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.Location);
     }
 
-    // Salary range
+    #endregion
+
+    #region Salary range
 
     [Theory]
     [Trait("Rule", "BR-04")]
@@ -211,7 +219,9 @@ public class CreateJobPostingInputModelValidatorTests
         _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(m => m.SalaryMax);
     }
 
-    // Closing date
+    #endregion
+
+    #region Closing date
 
     [Fact]
     [Trait("Rule", "BR-09")]
@@ -233,7 +243,9 @@ public class CreateJobPostingInputModelValidatorTests
         _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(m => m.ClosingDate);
     }
 
-    // Employment type
+    #endregion
+
+    #region Employment type
 
     [Theory]
     [Trait("Rule", "BR-10")]
@@ -247,6 +259,8 @@ public class CreateJobPostingInputModelValidatorTests
 
         _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.EmploymentType);
     }
+
+    #endregion
 
     private static CreateJobPostingInputModel ValidModel() => new()
     {

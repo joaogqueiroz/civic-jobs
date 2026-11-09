@@ -15,7 +15,7 @@ public class RegisterInputModelValidatorTests
         _validator.TestValidate(ValidModel()).ShouldNotHaveAnyValidationErrors();
     }
 
-    // Full name: required, up to 100 chars
+    #region Full name: required, up to 100 chars
 
     [Theory]
     [Trait("Requirement", "FR-01")]
@@ -50,7 +50,9 @@ public class RegisterInputModelValidatorTests
         _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.FullName);
     }
 
-    // Email: required, valid format
+    #endregion
+
+    #region Email: required, valid format
 
     [Theory]
     [Trait("Requirement", "FR-01")]
@@ -65,7 +67,9 @@ public class RegisterInputModelValidatorTests
         _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.Email);
     }
 
-    // Password: at least 8 chars, with a letter and a number
+    #endregion
+
+    #region Password: at least 8 chars, with a letter and a number
 
     [Theory]
     [Trait("Rule", "BR-02")]
@@ -91,6 +95,8 @@ public class RegisterInputModelValidatorTests
 
         _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(m => m.Password);
     }
+
+    #endregion
 
     private static RegisterInputModel ValidModel() => new()
     {
