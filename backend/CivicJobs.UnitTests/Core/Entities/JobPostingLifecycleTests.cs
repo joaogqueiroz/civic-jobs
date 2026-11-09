@@ -180,6 +180,26 @@ public class JobPostingLifecycleTests
             () => posting.Status.ShouldBe(JobPostingStatus.Open));
     }
 
+    [Theory]
+    [Trait("Requirement", "FR-07")]
+    [InlineData(JobPostingStatus.Draft)]
+    [InlineData(JobPostingStatus.Open)]
+    public void EnsureCanBeEdited_WhenDraftOrOpen_DoesNotThrow(JobPostingStatus status)
+    {
+        var posting = PostingWithStatus(status);
+
+        Should.NotThrow(posting.EnsureCanBeEdited);
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-06")]
+    public void EnsureCanBeEdited_WhenClosed_ThrowsInvalidStatusTransitionException()
+    {
+        var posting = PostingWithStatus(JobPostingStatus.Closed);
+
+        Should.Throw<InvalidStatusTransitionException>(posting.EnsureCanBeEdited);
+    }
+
     [Fact]
     [Trait("Rule", "BR-06")]
     public void Update_WhenClosed_ThrowsInvalidStatusTransitionException()

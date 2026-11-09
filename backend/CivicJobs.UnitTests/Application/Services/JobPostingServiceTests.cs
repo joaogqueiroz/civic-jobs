@@ -208,6 +208,34 @@ public class JobPostingServiceTests
     }
 
     [Fact]
+    [Trait("Rule", "BR-08")]
+    public async Task UpdateAsync_WhenOwnedByAnotherUserAndInputIsInvalid_ThrowsNotFoundException()
+    {
+        var posting = StoredPosting(Guid.NewGuid());
+        var input = ValidUpdateInput();
+        input.Title = "";
+
+        var update = () => CreateService().UpdateAsync(_userId, posting.Id, input, CancellationToken.None);
+
+        await update.ShouldThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-06")]
+    public async Task UpdateAsync_WhenClosedAndInputIsInvalid_ThrowsInvalidStatusTransitionException()
+    {
+        var posting = StoredPosting(_userId);
+        posting.Publish(Now);
+        posting.Close(Now);
+        var input = ValidUpdateInput();
+        input.Title = "";
+
+        var update = () => CreateService().UpdateAsync(_userId, posting.Id, input, CancellationToken.None);
+
+        await update.ShouldThrowAsync<InvalidStatusTransitionException>();
+    }
+
+    [Fact]
     [Trait("Rule", "BR-06")]
     public async Task UpdateAsync_WhenClosed_ThrowsInvalidStatusTransitionException()
     {
