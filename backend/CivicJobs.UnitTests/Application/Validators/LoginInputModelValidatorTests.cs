@@ -39,6 +39,16 @@ public class LoginInputModelValidatorTests
         _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.Password);
     }
 
+    [Fact]
+    [Trait("Rule", "BR-02")]
+    public void Validate_WhenPasswordIsLongerThan128Chars_HasPasswordError()
+    {
+        var model = ValidModel();
+        model.Password = new string('a', 129);
+
+        _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.Password);
+    }
+
     private static LoginInputModel ValidModel() => new()
     {
         Email = "recruiter@cityofexample.gov",

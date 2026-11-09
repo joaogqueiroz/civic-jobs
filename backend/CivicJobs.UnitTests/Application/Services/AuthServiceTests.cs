@@ -141,6 +141,20 @@ public class AuthServiceTests
 
     [Fact]
     [Trait("Requirement", "FR-02")]
+    public async Task LoginAsync_WhenEmailIsUnknown_StillVerifiesThePassword()
+    {
+        var login = () => CreateService().LoginAsync(LoginInput(), CancellationToken.None);
+
+        await login.ShouldThrowAsync<InvalidCredentialsException>();
+
+        // Response time is the only thing this protects, and it can't be measured reliably in a unit test.
+        // Verifying the password even without a stored hash keeps unknown and known emails equally slow,
+        // so an attacker can't find registered emails by timing the login endpoint.
+        _passwordHasher.Received(1).Verify(null, Password);
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-02")]
     public async Task LoginAsync_WhenPasswordIsWrong_ThrowsInvalidCredentialsException()
     {
         StoredUser();

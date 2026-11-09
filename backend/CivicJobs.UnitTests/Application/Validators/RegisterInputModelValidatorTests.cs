@@ -96,6 +96,26 @@ public class RegisterInputModelValidatorTests
         _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(m => m.Password);
     }
 
+    [Fact]
+    [Trait("Rule", "BR-02")]
+    public void Validate_WhenPasswordIsExactly128Chars_HasNoPasswordError()
+    {
+        var model = ValidModel();
+        model.Password = "a1" + new string('b', 126);
+
+        _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(m => m.Password);
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-02")]
+    public void Validate_WhenPasswordIsLongerThan128Chars_HasPasswordError()
+    {
+        var model = ValidModel();
+        model.Password = "a1" + new string('b', 127);
+
+        _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.Password);
+    }
+
     #endregion
 
     private static RegisterInputModel ValidModel() => new()
