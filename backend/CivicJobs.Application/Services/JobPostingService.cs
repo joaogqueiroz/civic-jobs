@@ -9,11 +9,13 @@ public sealed class JobPostingService(
     IValidator<CreateJobPostingInputModel> validator,
     TimeProvider timeProvider) : IJobPostingService
 {
-    public Task<JobPostingViewModel> CreateAsync(
+    public async Task<JobPostingViewModel> CreateAsync(
         Guid userId,
         CreateJobPostingInputModel input,
         CancellationToken cancellationToken)
     {
+        await validator.ValidateAndThrowAsync(input, cancellationToken);
+
         var posting = JobPosting.Create(
             createdByUserId: userId,
             title: input.Title,
@@ -26,6 +28,6 @@ public sealed class JobPostingService(
             closingDate: input.ClosingDate,
             createdAt: timeProvider.GetUtcNow());
 
-        return Task.FromResult(JobPostingViewModel.FromEntity(posting));
+        return JobPostingViewModel.FromEntity(posting);
     }
 }
