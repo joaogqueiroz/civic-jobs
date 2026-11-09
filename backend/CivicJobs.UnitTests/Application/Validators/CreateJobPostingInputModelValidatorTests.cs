@@ -194,7 +194,8 @@ public class CreateJobPostingInputModelValidatorTests
         var model = ValidModel();
         model.SalaryMin = (decimal)salaryMin;
 
-        _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.SalaryMin);
+        _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.SalaryMin)
+            .WithErrorMessage("Enter a minimum salary greater than zero.");
     }
 
     [Fact]
@@ -205,7 +206,8 @@ public class CreateJobPostingInputModelValidatorTests
         model.SalaryMin = 50_000m;
         model.SalaryMax = 49_999.99m;
 
-        _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.SalaryMax);
+        _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.SalaryMax)
+            .WithErrorMessage("Enter a maximum salary of at least $50,000, the minimum salary.");
     }
 
     [Fact]
@@ -230,7 +232,8 @@ public class CreateJobPostingInputModelValidatorTests
         var model = ValidModel();
         model.ClosingDate = Today.AddDays(-1);
 
-        _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.ClosingDate);
+        _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.ClosingDate)
+            .WithErrorMessage("Choose a closing date of today or later.");
     }
 
     [Fact]
