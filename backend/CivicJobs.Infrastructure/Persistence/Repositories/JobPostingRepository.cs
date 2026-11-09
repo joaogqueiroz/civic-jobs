@@ -28,6 +28,17 @@ public sealed class JobPostingRepository(CivicJobsDbContext context) : IJobPosti
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<JobPosting>> ListOpenAsync(
+        DateOnly closingOnOrAfter,
+        CancellationToken cancellationToken) =>
+        await context.JobPostings
+            .AsNoTracking()
+            .Where(p => p.Status == JobPostingStatus.Open && p.ClosingDate >= closingOnOrAfter)
+            .OrderBy(p => p.ClosingDate)
+            .ThenBy(p => p.Title)
+            .ThenBy(p => p.Id)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(JobPosting posting, CancellationToken cancellationToken)
     {
         context.JobPostings.Add(posting);

@@ -114,6 +114,15 @@ public sealed class JobPostingService(
         return JobPostingViewModel.FromEntity(posting);
     }
 
+    public async Task<IReadOnlyList<PublicJobPostingViewModel>> ListPublicAsync(CancellationToken cancellationToken)
+    {
+        // Candidates only see postings that are still valid: an Open posting past its closing date is hidden.
+        var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+        var postings = await repository.ListOpenAsync(today, cancellationToken);
+
+        return postings.Select(PublicJobPostingViewModel.FromEntity).ToList();
+    }
+
     private async Task<JobPosting> GetOwnedAsync(Guid userId, Guid id, CancellationToken cancellationToken)
     {
         var posting = await repository.GetByIdAsync(id, cancellationToken);

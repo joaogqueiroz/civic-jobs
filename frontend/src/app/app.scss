@@ -37,6 +37,12 @@
   max-width: 40vw;
 }
 
+// The current page in the anonymous toolbar links is marked by an underline as well as aria-current.
+.active-link {
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+
 main {
   max-width: 1120px;
   margin: 0 auto;

@@ -399,6 +399,28 @@ public class JobPostingServiceTests
 
     #endregion
 
+    #region Public list (FR-11)
+
+    // Which postings are public (Open, closing today or later) is decided in SQL and covered by the
+    // integration tests in JobPostingRepositoryTests; this test proves "today" comes from TimeProvider.
+    [Fact]
+    [Trait("Requirement", "FR-11")]
+    public async Task ListPublicAsync_AsksForPostingsClosingTodayOrLaterAndMapsThem()
+    {
+        var open = StoredPosting(Guid.NewGuid());
+        open.Publish(Now);
+        _repository.ListOpenAsync(Today, Arg.Any<CancellationToken>()).Returns([open]);
+
+        var result = await CreateService().ListPublicAsync(CancellationToken.None);
+
+        result.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
+            posting => posting.Id.ShouldBe(open.Id),
+            posting => posting.Title.ShouldBe(open.Title),
+            posting => posting.ClosingDate.ShouldBe(open.ClosingDate));
+    }
+
+    #endregion
+
     private async Task ShouldNotHaveSavedAnythingAsync()
     {
         await _repository.DidNotReceiveWithAnyArgs().AddAsync(default!, default);

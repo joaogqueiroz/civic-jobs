@@ -43,6 +43,20 @@ export interface JobPosting {
   updatedAt: string;
 }
 
+/** A posting in the public list for candidates (FR-11): no status, owner or timestamps. */
+export interface PublicJobPosting {
+  id: string;
+  title: string;
+  department: string;
+  description: string;
+  location: string;
+  employmentType: EmploymentType;
+  salaryMin: number;
+  salaryMax: number;
+  /** ISO date, yyyy-MM-dd. */
+  closingDate: string;
+}
+
 export interface JobPostingInput {
   title: string;
   department: string;

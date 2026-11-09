@@ -22,6 +22,8 @@ docker compose up --build
 
 Log in with `recruiter@cityofexample.gov` / `Demo@12345` (5 postings) or `recruiter2@cityofexample.gov` / `Demo@12345` (2 postings).
 
+Candidates can browse open positions without logging in at http://localhost:4200/open-positions.
+
 The database lives in the `civicjobs-data` volume and is seeded on the first start. To start over with fresh demo data:
 
 ```

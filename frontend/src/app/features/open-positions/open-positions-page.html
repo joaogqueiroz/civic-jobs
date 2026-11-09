@@ -1,0 +1,58 @@
+<header class="page-header">
+  <h1 class="page-title">Open positions</h1>
+  <p class="muted">Current openings in city departments. Apply before the closing date.</p>
+</header>
+
+@if (positions.isLoading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Loading open positions" />
+}
+
+@if (positions.hasValue()) {
+  @let items = positions.value();
+
+  @if (items.length === 0) {
+    <p class="empty">No open positions right now. Check back soon.</p>
+  } @else {
+    <p class="count small muted" aria-live="polite">
+      {{ items.length }} {{ items.length === 1 ? 'open position' : 'open positions' }}
+    </p>
+
+    <ul class="positions" role="list">
+      @for (position of items; track position.id) {
+        <li>
+          <article class="position" [attr.aria-labelledby]="'position-' + position.id">
+            <div class="position-header">
+              <div>
+                <h2 class="section-title" [id]="'position-' + position.id">{{ position.title }}</h2>
+                <p class="muted">{{ position.department }}</p>
+              </div>
+              <p class="closes small num">
+                Closes <strong>{{ position.closingDate | date: 'MMM d, y' : 'UTC' }}</strong>
+              </p>
+            </div>
+
+            <dl class="facts">
+              <div>
+                <dt class="small muted">Location</dt>
+                <dd>{{ position.location }}</dd>
+              </div>
+              <div>
+                <dt class="small muted">Type</dt>
+                <dd>{{ employmentTypeLabel(position.employmentType) }}</dd>
+              </div>
+              <div>
+                <dt class="small muted">Salary</dt>
+                <dd class="num">
+                  {{ position.salaryMin | currency: 'USD' : 'symbol' : '1.0-0' }} –
+                  {{ position.salaryMax | currency: 'USD' : 'symbol' : '1.0-0' }}
+                </dd>
+              </div>
+            </dl>
+
+            <p class="description">{{ position.description }}</p>
+          </article>
+        </li>
+      }
+    </ul>
+  }
+}

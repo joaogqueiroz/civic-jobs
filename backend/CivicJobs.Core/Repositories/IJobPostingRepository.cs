@@ -12,6 +12,9 @@ public interface IJobPostingRepository
         JobPostingStatus? status,
         CancellationToken cancellationToken);
 
+    /// <summary>Open postings from every recruiter whose closing date is on or after the given date (FR-11).</summary>
+    Task<IReadOnlyList<JobPosting>> ListOpenAsync(DateOnly closingOnOrAfter, CancellationToken cancellationToken);
+
     Task AddAsync(JobPosting posting, CancellationToken cancellationToken);
 
     Task UpdateAsync(JobPosting posting, CancellationToken cancellationToken);
