@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, map, tap } from 'rxjs';
+import { Observable, finalize, map, shareReplay, tap } from 'rxjs';
 import { AuthToken, LoginInput, RegisterInput, User } from './models';
 import { TokenStorage } from './token-storage';
 
@@ -15,6 +15,7 @@ export class AuthService {
 
   private readonly token = signal<AuthToken | null>(this.storage.get());
   private readonly user = signal<User | null>(null);
+  private pendingUser?: Observable<User>;
 
   readonly currentUser = this.user.asReadonly();
 
@@ -42,8 +43,17 @@ export class AuthService {
     return this.http.post<User>(`${API}/auth/register`, input);
   }
 
+  /**
+   * Loads the current user. Callers that ask while a request is still running share it, so right after
+   * login (when the login page and the app shell both ask) only one /users/me request is sent.
+   */
   loadCurrentUser(): Observable<User> {
-    return this.http.get<User>(`${API}/users/me`).pipe(tap((user) => this.user.set(user)));
+    this.pendingUser ??= this.http.get<User>(`${API}/users/me`).pipe(
+      tap((user) => this.user.set(user)),
+      finalize(() => (this.pendingUser = undefined)),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    return this.pendingUser;
   }
 
   logout(): void {
