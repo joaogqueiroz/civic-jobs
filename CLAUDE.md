@@ -24,7 +24,8 @@ backend/
   CivicJobs.Application/       Services (IJobPostingService, IAuthService, IUserService), Abstractions (IPasswordHasher, ITokenService),
                                InputModels, ViewModels, Validators. References Core only.
   CivicJobs.Infrastructure/    Persistence (CivicJobsDbContext, Configurations, Repositories, Migrations, DbInitializer),
-                               Auth (PasswordHasher, JwtTokenService, JwtOptions), DependencyInjection.
+                               Auth (PasswordHasher, JwtTokenService, JwtOptions), DependencyInjection,
+                               Web (shared by both APIs: GlobalExceptionHandler, JWT bearer, Swagger, ClaimsPrincipal.GetUserId).
                                References Application and Core.
   CivicJobs.Identity.Api/      AuthController, UsersController. References Application and Infrastructure.
   CivicJobs.Jobs.Api/          JobPostingsController. References Application and Infrastructure.
