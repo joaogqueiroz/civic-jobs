@@ -58,15 +58,23 @@ Clean Architecture with plain services (no CQRS or MediatR). Arrows point to wha
 Angular frontend
       │  HTTP: /identity → Identity API, /jobs → Jobs API
       ▼
-Identity API    Jobs API          controllers, JWT auth, Swagger, error handling
-      │            │
-      ▼            ▼
-Infrastructure ──────► Application ──────► Core
-EF Core, SQLite,       services,           entities, business rules,
-JWT, hashing           validators          repository interfaces
+┌────────────────┬────────────────┐
+│  Identity API  │    Jobs API    │   controllers, JWT auth, Swagger, error handling
+└────────────────┴────────────────┘
+         │                 │
+         ▼                 ▼
+  Infrastructure ──────► Application ──────► Core
+  EF Core, SQLite,       services,           entities, business rules,
+  JWT, hashing           validators          repository interfaces
 ```
 
-- **Dependency rule:** dependencies point inward. Application never references Infrastructure, and Core references nothing. Business rules live in Core entities or Application services, never in controllers or repositories.
+- **Dependency rule:** dependencies point inward.
+  - Both APIs reference Application and Infrastructure.
+  - Infrastructure references Application and Core.
+  - Application references only Core, never Infrastructure.
+  - Core references nothing.
+
+  Business rules live in Core entities or Application services, never in controllers or repositories.
 - **Shared between the APIs:** both read the same `Jwt` settings (issuer, audience, key), so a token from the Identity API works in the Jobs API, and both use the same SQLite database file.
 
 ## Project structure
@@ -108,10 +116,10 @@ docker-compose.yml
 
 ## How AI was used
 
-I built this with Claude Code:
-- **[CLAUDE.md](CLAUDE.md)** held the project rules: architecture, tests and conventions.
-- **The `tdd-cycle` skill** wrote failing tests first, then the code.
-- **The `architecture-reviewer` agent** checked each block before it was pushed.
-- **The `frontend-design` plugin** guided the UI pass.
+I used Claude Code as my coding assistant, with guardrails I set up for this project:
+- **[CLAUDE.md](CLAUDE.md)** holds the rules I defined: architecture, tests and conventions.
+- **The `tdd-cycle` skill** follows the workflow I chose: failing tests first, then the code.
+- **The `architecture-reviewer` agent** checked each block for layer violations, ownership and weak tests before I merged it.
+- **The `frontend-design` plugin** helped with the UI pass, following the visual direction I picked.
 
-I made the design decisions and reviewed each block. The GenAI part of the exercise (prompt, raw output and my review) is in [genai-exercise/](genai-exercise/).
+I wrote the requirements (PRD and user story), made the design decisions and reviewed the code at the end of each block. The commit history shows each step. The GenAI part of the exercise (prompt, raw output and my review) is in [genai-exercise/](genai-exercise/).
