@@ -17,6 +17,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/register-page').then((m) => m.RegisterPage),
   },
   {
+    path: 'open-positions',
+    title: 'Open positions · CivicJobs',
+    loadComponent: () =>
+      import('./features/open-positions/open-positions-page').then((m) => m.OpenPositionsPage),
+  },
+  {
     path: 'job-postings',
     canActivate: [authGuard],
     children: [

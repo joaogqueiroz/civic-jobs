@@ -11,6 +11,9 @@
       <span class="user-name" data-testid="user-name">{{ user.fullName }}</span>
     }
     <button mat-button type="button" (click)="auth.logout()">Log out</button>
+  } @else {
+    <a mat-button routerLink="/open-positions" routerLinkActive="active-link" ariaCurrentWhenActive="page">Open positions</a>
+    <a mat-button routerLink="/login" routerLinkActive="active-link" ariaCurrentWhenActive="page">Log in</a>
   }
 </mat-toolbar>
 
