@@ -88,7 +88,7 @@ Each requirement maps to tests, so the test suite shows which rules are covered.
 | Security | Passwords hashed, JWT bearer auth, owner taken from the token, no secrets in code |
 | API | REST verbs and status codes, `ProblemDetails` errors, Swagger documentation |
 | Frontend | Responsive down to 375 px, clear validation messages, no browser console warnings |
-| Setup | Runs locally with no database install (SQLite) and seeded demo data |
+| Setup | Runs locally with no database install (SQLite) and seeded demo data, or with one command using Docker (`docker compose up --build`) |
 
 ## 9. Success metrics
 
