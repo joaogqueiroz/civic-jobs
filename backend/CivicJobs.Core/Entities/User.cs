@@ -1,5 +1,3 @@
-using CivicJobs.Core.Exceptions;
-
 namespace CivicJobs.Core.Entities;
 
 public class User
@@ -16,9 +14,9 @@ public class User
 
     public static User Create(string email, string fullName, string passwordHash, DateTimeOffset createdAt)
     {
-        EnsureRequired(email, nameof(Email));
-        EnsureRequired(fullName, nameof(FullName));
-        EnsureRequired(passwordHash, nameof(PasswordHash));
+        Guard.Required(email, nameof(Email));
+        Guard.Required(fullName, nameof(FullName));
+        Guard.Required(passwordHash, nameof(PasswordHash));
 
         return new User
         {
@@ -31,12 +29,4 @@ public class User
     }
 
     public static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
-
-    private static void EnsureRequired(string value, string fieldName)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            throw new DomainValidationException($"{fieldName} is required.");
-        }
-    }
 }

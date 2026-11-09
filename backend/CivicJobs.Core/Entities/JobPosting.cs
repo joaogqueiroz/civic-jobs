@@ -140,10 +140,10 @@ public class JobPosting
         decimal salaryMin,
         decimal salaryMax)
     {
-        EnsureRequired(title, nameof(Title));
-        EnsureRequired(department, nameof(Department));
-        EnsureRequired(description, nameof(Description));
-        EnsureRequired(location, nameof(Location));
+        Guard.Required(title, nameof(Title));
+        Guard.Required(department, nameof(Department));
+        Guard.Required(description, nameof(Description));
+        Guard.Required(location, nameof(Location));
 
         if (!Enum.IsDefined(employmentType))
         {
@@ -178,12 +178,4 @@ public class JobPosting
     }
 
     private static DateOnly ToDate(DateTimeOffset value) => DateOnly.FromDateTime(value.UtcDateTime);
-
-    private static void EnsureRequired(string value, string fieldName)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            throw new DomainValidationException($"{fieldName} is required.");
-        }
-    }
 }
