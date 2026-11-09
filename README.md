@@ -1,4 +1,6 @@
-# civic-jobs
+![CI](https://github.com/joaogqueiroz/civic-jobs/actions/workflows/ci.yml/badge.svg)
+
+# CivicJobs
 
 CivicJobs is a job posting manager for public sector HR recruiters: create, publish and close job postings for a department. It has an Identity API (register, login), a Jobs API and an Angular frontend, sharing one SQLite database seeded with demo data.
 
