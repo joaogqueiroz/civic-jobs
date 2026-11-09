@@ -35,6 +35,7 @@ public class UserServiceTests
     {
         var get = () => new UserService(_users).GetCurrentAsync(Guid.NewGuid(), CancellationToken.None);
 
-        await get.ShouldThrowAsync<UnauthorizedException>();
+        (await get.ShouldThrowAsync<UnauthorizedException>())
+            .Message.ShouldBe("Your session has ended. Log in again to continue.");
     }
 }

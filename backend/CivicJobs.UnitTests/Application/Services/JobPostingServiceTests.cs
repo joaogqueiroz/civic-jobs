@@ -103,7 +103,8 @@ public class JobPostingServiceTests
     {
         var get = () => CreateService().GetByIdAsync(_userId, Guid.NewGuid(), CancellationToken.None);
 
-        await get.ShouldThrowAsync<NotFoundException>();
+        (await get.ShouldThrowAsync<NotFoundException>())
+            .Message.ShouldBe("We couldn't find that job posting. It may have been deleted.");
     }
 
     [Fact]

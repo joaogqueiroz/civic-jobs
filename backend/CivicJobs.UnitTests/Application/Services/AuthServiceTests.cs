@@ -83,7 +83,8 @@ public class AuthServiceTests
 
         var register = () => CreateService().RegisterAsync(input, CancellationToken.None);
 
-        await register.ShouldThrowAsync<ConflictException>();
+        (await register.ShouldThrowAsync<ConflictException>())
+            .Message.ShouldBe("An account with this email already exists. Log in, or use a different email.");
         await _users.DidNotReceiveWithAnyArgs().AddAsync(default!, default);
     }
 

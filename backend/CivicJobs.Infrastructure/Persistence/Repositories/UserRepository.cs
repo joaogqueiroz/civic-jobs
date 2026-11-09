@@ -30,7 +30,7 @@ public sealed class UserRepository(CivicJobsDbContext context) : IUserRepository
         {
             // Two registrations with the same email raced past the service check; the unique index caught the second.
             context.Entry(user).State = EntityState.Detached;
-            throw new ConflictException("Email is already in use.");
+            throw new ConflictException("An account with this email already exists. Log in, or use a different email.");
         }
     }
 }

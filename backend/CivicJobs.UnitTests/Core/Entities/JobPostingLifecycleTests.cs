@@ -45,7 +45,8 @@ public class JobPostingLifecycleTests
 
         var publish = () => posting.Publish(Now);
 
-        publish.ShouldThrow<InvalidStatusTransitionException>();
+        publish.ShouldThrow<InvalidStatusTransitionException>()
+            .Message.ShouldBe("Choose a closing date after today. Open postings must close in the future.");
         posting.Status.ShouldBe(JobPostingStatus.Draft);
     }
 
@@ -62,15 +63,15 @@ public class JobPostingLifecycleTests
 
     [Theory]
     [Trait("Rule", "BR-06")]
-    [InlineData(JobPostingStatus.Open)]
-    [InlineData(JobPostingStatus.Closed)]
-    public void Publish_WhenNotDraft_ThrowsInvalidStatusTransitionException(JobPostingStatus status)
+    [InlineData(JobPostingStatus.Open, "This posting is already published.")]
+    [InlineData(JobPostingStatus.Closed, "This posting is closed and can't be published again.")]
+    public void Publish_WhenNotDraft_ThrowsInvalidStatusTransitionException(JobPostingStatus status, string message)
     {
         var posting = PostingWithStatus(status);
 
         var publish = () => posting.Publish(Later);
 
-        publish.ShouldThrow<InvalidStatusTransitionException>();
+        publish.ShouldThrow<InvalidStatusTransitionException>().Message.ShouldBe(message);
         posting.Status.ShouldBe(status);
     }
 
@@ -94,15 +95,15 @@ public class JobPostingLifecycleTests
 
     [Theory]
     [Trait("Rule", "BR-06")]
-    [InlineData(JobPostingStatus.Draft)]
-    [InlineData(JobPostingStatus.Closed)]
-    public void Close_WhenNotOpen_ThrowsInvalidStatusTransitionException(JobPostingStatus status)
+    [InlineData(JobPostingStatus.Draft, "Publish this draft before closing it.")]
+    [InlineData(JobPostingStatus.Closed, "This posting is already closed.")]
+    public void Close_WhenNotOpen_ThrowsInvalidStatusTransitionException(JobPostingStatus status, string message)
     {
         var posting = PostingWithStatus(status);
 
         var close = () => posting.Close(Later);
 
-        close.ShouldThrow<InvalidStatusTransitionException>();
+        close.ShouldThrow<InvalidStatusTransitionException>().Message.ShouldBe(message);
         posting.Status.ShouldBe(status);
     }
 
@@ -127,7 +128,8 @@ public class JobPostingLifecycleTests
     {
         var posting = PostingWithStatus(status);
 
-        Should.Throw<InvalidStatusTransitionException>(posting.EnsureCanBeDeleted);
+        Should.Throw<InvalidStatusTransitionException>(posting.EnsureCanBeDeleted)
+            .Message.ShouldBe("Only drafts can be deleted. Published postings are kept as a public record.");
     }
 
     #endregion
@@ -197,7 +199,8 @@ public class JobPostingLifecycleTests
     {
         var posting = PostingWithStatus(JobPostingStatus.Closed);
 
-        Should.Throw<InvalidStatusTransitionException>(posting.EnsureCanBeEdited);
+        Should.Throw<InvalidStatusTransitionException>(posting.EnsureCanBeEdited)
+            .Message.ShouldBe("This posting is closed, so it can't be edited.");
     }
 
     [Fact]

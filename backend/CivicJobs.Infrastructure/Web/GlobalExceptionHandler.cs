@@ -32,7 +32,7 @@ public sealed class GlobalExceptionHandler(
             ConflictException => Problem(StatusCodes.Status409Conflict, "Conflict.", exception.Message),
             NotFoundException => Problem(StatusCodes.Status404NotFound, "Not found.", exception.Message),
             InvalidCredentialsException or UnauthorizedException => Problem(StatusCodes.Status401Unauthorized, "Unauthorized.", exception.Message),
-            _ => Problem(StatusCodes.Status500InternalServerError, "An unexpected error occurred.", null)
+            _ => Problem(StatusCodes.Status500InternalServerError, "An unexpected error occurred.", "Something went wrong on our side. Try again in a moment.")
         };
 
         if (problemDetails.Status == StatusCodes.Status500InternalServerError)

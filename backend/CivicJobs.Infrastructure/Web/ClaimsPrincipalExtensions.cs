@@ -10,5 +10,5 @@ public static class ClaimsPrincipalExtensions
     public static Guid GetUserId(this ClaimsPrincipal principal) =>
         Guid.TryParse(principal.FindFirstValue(JwtRegisteredClaimNames.Sub), out var userId)
             ? userId
-            : throw new UnauthorizedException("The token has no valid user id.");
+            : throw new UnauthorizedException("Your session has ended. Log in again to continue.");
 }
