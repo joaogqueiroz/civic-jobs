@@ -1,0 +1,14 @@
+{
+  "/identity": {
+    "target": "http://localhost:5101",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/identity": "" }
+  },
+  "/jobs": {
+    "target": "http://localhost:5102",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/jobs": "" }
+  }
+}

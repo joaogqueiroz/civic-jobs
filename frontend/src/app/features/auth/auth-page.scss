@@ -1,0 +1,29 @@
+:host {
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 16px;
+}
+
+mat-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 16px 16px;
+}
+
+.form-error {
+  margin: 0 0 12px;
+  color: var(--mat-sys-error);
+}
