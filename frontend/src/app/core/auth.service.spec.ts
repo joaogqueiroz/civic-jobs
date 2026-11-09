@@ -60,6 +60,28 @@ describe('AuthService', () => {
     expect(service.currentUser()?.fullName).toBe('Jane Doe');
   });
 
+  it('loadCurrentUser sends one request when called again while the first is still running', () => {
+    // After login, the login page and the app shell both ask for the current user at the same moment.
+    service.loadCurrentUser().subscribe();
+    service.loadCurrentUser().subscribe();
+
+    http
+      .expectOne('/identity/api/users/me')
+      .flush({ id: '1', email: 'jane@cityofexample.gov', fullName: 'Jane Doe', createdAt: '2026-11-08T12:00:00Z' });
+
+    expect(service.currentUser()?.fullName).toBe('Jane Doe');
+  });
+
+  it('loadCurrentUser asks again once the previous request has finished', () => {
+    const user = { id: '1', email: 'jane@cityofexample.gov', fullName: 'Jane Doe', createdAt: '2026-11-08T12:00:00Z' };
+    service.loadCurrentUser().subscribe();
+    http.expectOne('/identity/api/users/me').flush(user);
+
+    service.loadCurrentUser().subscribe();
+
+    http.expectOne('/identity/api/users/me').flush(user);
+  });
+
   it('is not authenticated when the stored token has expired', () => {
     storage.set({ accessToken: 'old-token', expiresAt: anHourAgo() });
 
