@@ -1,7 +1,12 @@
 using CivicJobs.Application.InputModels;
 using CivicJobs.Application.Services;
+using CivicJobs.Application.Validators;
+using CivicJobs.Core.Entities;
 using CivicJobs.Core.Enums;
+using CivicJobs.Core.Repositories;
+using FluentValidation;
 using Microsoft.Extensions.Time.Testing;
+using NSubstitute;
 using Shouldly;
 
 namespace CivicJobs.UnitTests.Application.Services;
@@ -11,6 +16,7 @@ public class JobPostingServiceTests
     private static readonly DateTimeOffset Now = new(2026, 11, 8, 12, 0, 0, TimeSpan.Zero);
 
     private readonly FakeTimeProvider _timeProvider = new(Now);
+    private readonly IJobPostingRepository _repository = Substitute.For<IJobPostingRepository>();
 
     [Fact]
     [Trait("Requirement", "FR-04")]
@@ -35,7 +41,40 @@ public class JobPostingServiceTests
             () => result.UpdatedAt.ShouldBe(Now));
     }
 
-    private JobPostingService CreateService() => new(_timeProvider);
+    [Fact]
+    [Trait("Rule", "BR-03")]
+    public async Task CreateAsync_WithInvalidInput_ThrowsValidationException()
+    {
+        var input = ValidInput();
+        input.Title = "ab";
+
+        var create = () => CreateService().CreateAsync(Guid.NewGuid(), input, CancellationToken.None);
+
+        var exception = await create.ShouldThrowAsync<ValidationException>();
+        exception.Errors.ShouldContain(e => e.PropertyName == nameof(CreateJobPostingInputModel.Title));
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-04")]
+    [Trait("Rule", "BR-08")]
+    public async Task CreateAsync_WithValidInput_SavesPostingOwnedByCaller()
+    {
+        var userId = Guid.NewGuid();
+        JobPosting? saved = null;
+        _repository
+            .When(r => r.AddAsync(Arg.Any<JobPosting>(), Arg.Any<CancellationToken>()))
+            .Do(call => saved = call.Arg<JobPosting>());
+
+        var result = await CreateService().CreateAsync(userId, ValidInput(), CancellationToken.None);
+
+        saved.ShouldNotBeNull();
+        saved.ShouldSatisfyAllConditions(
+            () => saved.Id.ShouldBe(result.Id),
+            () => saved.CreatedByUserId.ShouldBe(userId));
+    }
+
+    private JobPostingService CreateService() =>
+        new(new CreateJobPostingInputModelValidator(_timeProvider), _repository, _timeProvider);
 
     private static CreateJobPostingInputModel ValidInput() => new()
     {

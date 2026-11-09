@@ -1,16 +1,23 @@
 using CivicJobs.Application.InputModels;
 using CivicJobs.Application.ViewModels;
 using CivicJobs.Core.Entities;
+using CivicJobs.Core.Repositories;
+using FluentValidation;
 
 namespace CivicJobs.Application.Services;
 
-public sealed class JobPostingService(TimeProvider timeProvider) : IJobPostingService
+public sealed class JobPostingService(
+    IValidator<CreateJobPostingInputModel> validator,
+    IJobPostingRepository repository,
+    TimeProvider timeProvider) : IJobPostingService
 {
-    public Task<JobPostingViewModel> CreateAsync(
+    public async Task<JobPostingViewModel> CreateAsync(
         Guid userId,
         CreateJobPostingInputModel input,
         CancellationToken cancellationToken)
     {
+        await validator.ValidateAndThrowAsync(input, cancellationToken);
+
         var posting = JobPosting.Create(
             createdByUserId: userId,
             title: input.Title,
@@ -23,6 +30,8 @@ public sealed class JobPostingService(TimeProvider timeProvider) : IJobPostingSe
             closingDate: input.ClosingDate,
             createdAt: timeProvider.GetUtcNow());
 
-        return Task.FromResult(JobPostingViewModel.FromEntity(posting));
+        await repository.AddAsync(posting, cancellationToken);
+
+        return JobPostingViewModel.FromEntity(posting);
     }
 }
