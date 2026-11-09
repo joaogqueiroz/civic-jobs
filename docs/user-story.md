@@ -51,6 +51,7 @@ Draft --publish--> Open --close--> Closed
 - Editing an Open posting keeps the publish rules (closing date must stay after today).
 - Delete: Draft only.
 - Any other transition returns **409 Conflict**.
+- Order of checks on edit (PUT): **404** if the posting doesn't exist or belongs to another user, then **409** if it's Closed, then **400** for invalid input (including a closing date in the past), then **409** if an Open posting's closing date isn't after today (BR-05).
 
 ### User
 
