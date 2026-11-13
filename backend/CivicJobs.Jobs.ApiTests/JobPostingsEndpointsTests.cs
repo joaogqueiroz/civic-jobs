@@ -55,6 +55,20 @@ public sealed class JobPostingsEndpointsTests(JobsApiFactory factory) : IClassFi
     }
 
     [Fact]
+    [Trait("Rule", "BR-21")]
+    public async Task ListPostings_WithTheSessionCookieInsteadOfABearerHeader_Returns200()
+    {
+        var bearerClient = await factory.CreateClientForNewRecruiterAsync();
+        var token = bearerClient.DefaultRequestHeaders.Authorization!.Parameter;
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/job-postings");
+        request.Headers.Add("Cookie", $"civicjobs_session={token}");
+        var response = await factory.CreateClient().SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
     [Trait("Rule", "BR-08")]
     public async Task GetPosting_OwnedByAnotherRecruiter_Returns404()
     {
