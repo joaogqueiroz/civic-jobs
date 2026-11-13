@@ -14,6 +14,8 @@ public sealed class CivicJobsDbContext(DbContextOptions<CivicJobsDbContext> opti
 
     public DbSet<Department> Departments => Set<Department>();
 
+    public DbSet<JobApplication> JobApplications => Set<JobApplication>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CivicJobsDbContext).Assembly);
 

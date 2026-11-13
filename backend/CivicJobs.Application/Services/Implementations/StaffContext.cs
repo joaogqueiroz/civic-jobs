@@ -1,5 +1,6 @@
 using CivicJobs.Application.Exceptions;
 using CivicJobs.Core.Entities;
+using CivicJobs.Core.Enums;
 using CivicJobs.Core.Repositories;
 
 namespace CivicJobs.Application.Services.Implementations;
@@ -33,5 +34,22 @@ internal static class StaffContext
             : null;
 
         return department ?? throw new UnauthorizedException(SessionEnded);
+    }
+
+    /// <summary>
+    /// A posting the hiring manager can see: one of their department that has been submitted. Another department's
+    /// posting, or a draft the recruiter hasn't submitted, is reported as not found (BR-16).
+    /// </summary>
+    public static async Task<JobPosting> GetDepartmentPostingAsync(
+        this IJobPostingRepository postings,
+        Department department,
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var posting = await postings.GetByIdAsync(id, cancellationToken);
+
+        return posting is not null && posting.DepartmentId == department.Id && posting.Status != JobPostingStatus.Draft
+            ? posting
+            : throw new NotFoundException("We couldn't find that job posting in your department.");
     }
 }

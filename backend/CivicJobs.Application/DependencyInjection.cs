@@ -22,6 +22,8 @@ public static class DependencyInjection
         services.AddSingleton<IValidator<CreateStaffInputModel>, CreateStaffInputModelValidator>();
         services.AddSingleton<IValidator<ChangeRoleInputModel>, ChangeRoleInputModelValidator>();
         services.AddSingleton<IValidator<RejectJobPostingInputModel>, RejectJobPostingInputModelValidator>();
+        services.AddSingleton<IValidator<ApplyInputModel>, ApplyInputModelValidator>();
+        services.AddSingleton<IValidator<ChangeApplicationStatusInputModel>, ChangeApplicationStatusInputModelValidator>();
 
         services.AddScoped<IJobPostingService, JobPostingService>();
         services.AddScoped<IJobPostingExpirationService, JobPostingExpirationService>();
@@ -30,6 +32,8 @@ public static class DependencyInjection
         services.AddScoped<IDepartmentService, DepartmentService>();
         services.AddScoped<IStaffService, StaffService>();
         services.AddScoped<IDepartmentJobPostingService, DepartmentJobPostingService>();
+        services.AddScoped<IJobApplicationService, JobApplicationService>();
+        services.AddScoped<IDepartmentApplicationService, DepartmentApplicationService>();
 
         return services;
     }

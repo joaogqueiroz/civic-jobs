@@ -60,6 +60,42 @@ namespace CivicJobs.Infrastructure.Persistence.Migrations
                     b.ToTable("Departments", (string)null);
                 });
 
+            modelBuilder.Entity("CivicJobs.Core.Entities.JobApplication", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CandidateId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CoverLetter")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("JobPostingId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobPostingId");
+
+                    b.HasIndex("CandidateId", "JobPostingId")
+                        .IsUnique();
+
+                    b.ToTable("JobApplications", (string)null);
+                });
+
             modelBuilder.Entity("CivicJobs.Core.Entities.JobPosting", b =>
                 {
                     b.Property<Guid>("Id")

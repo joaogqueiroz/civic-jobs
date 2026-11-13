@@ -64,6 +64,9 @@ public sealed class JobPostingRepository(CivicJobsDbContext context) : IJobPosti
             .Where(p => p.Status == JobPostingStatus.Open && p.ClosingDate < today)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<JobPosting>> ListByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        await context.JobPostings.AsNoTracking().Where(p => ids.Contains(p.Id)).ToListAsync(cancellationToken);
+
     public async Task AddAsync(JobPosting posting, CancellationToken cancellationToken)
     {
         context.JobPostings.Add(posting);

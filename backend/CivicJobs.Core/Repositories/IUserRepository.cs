@@ -11,6 +11,8 @@ public interface IUserRepository
     /// <summary>Admins, recruiters and hiring managers of the agency, sorted by name.</summary>
     Task<IReadOnlyList<User>> ListStaffByAgencyAsync(Guid agencyId, CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<User>> ListByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
+
     Task AddAsync(User user, CancellationToken cancellationToken);
 
     Task UpdateAsync(User user, CancellationToken cancellationToken);

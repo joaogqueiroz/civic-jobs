@@ -53,6 +53,16 @@ public static class DbInitializer
             JobPosting.Create(owner.Id, department.Id, department.Name, title, description, location, employmentType,
                 salaryMin, salaryMax, closingDate, createdAt);
 
+        var coordinator = Published(Posting(parks, parksDepartment, "Recreation Program Coordinator",
+            "Plan and run youth and senior programs at community centers.", "Eastside Community Center",
+            EmploymentType.FullTime, 55_000m, 65_000m, today.AddDays(30), now.AddDays(-10)), now.AddDays(-9));
+        var groundskeeper = Published(Posting(parks, parksDepartment, "Groundskeeper", "Maintain lawns, trails and playgrounds across city parks.",
+            "North Parks Yard", EmploymentType.PartTime, 28_000m, 34_000m, today.AddDays(21), now.AddDays(-8)), now.AddDays(-7));
+
+        var appliedToGroundskeeper = JobApplication.Submit(groundskeeper, candidate.Id,
+            "I worked three summers on the grounds crew at Lakeside College.", now.AddDays(-5));
+        appliedToGroundskeeper.ChangeStatus(JobApplicationStatus.UnderReview, now.AddDays(-2));
+
         context.Agencies.Add(agency);
         context.Departments.AddRange(parksDepartment, worksDepartment);
         context.Users.AddRange(admin, parks, publicWorks, parksManager, worksManager, candidate);
@@ -64,11 +74,8 @@ public static class DbInitializer
                 EmploymentType.FullTime, 52_000m, 61_000m, today.AddDays(50), now.AddDays(-1)), now.AddHours(-20)),
             Posting(parks, parksDepartment, "Seasonal Lifeguard", "Supervise swimmers at city pools during the summer season.",
                 "Riverside Aquatic Center", EmploymentType.Temporary, 32_000m, 36_000m, today.AddDays(60), now.AddDays(-1)),
-            Published(Posting(parks, parksDepartment, "Recreation Program Coordinator",
-                "Plan and run youth and senior programs at community centers.", "Eastside Community Center",
-                EmploymentType.FullTime, 55_000m, 65_000m, today.AddDays(30), now.AddDays(-10)), now.AddDays(-9)),
-            Published(Posting(parks, parksDepartment, "Groundskeeper", "Maintain lawns, trails and playgrounds across city parks.",
-                "North Parks Yard", EmploymentType.PartTime, 28_000m, 34_000m, today.AddDays(21), now.AddDays(-8)), now.AddDays(-7)),
+            coordinator,
+            groundskeeper,
             Closed(Published(Posting(parks, parksDepartment, "Community Center Assistant",
                 "Front desk support and room bookings at the community center.", "Westside Community Center",
                 EmploymentType.PartTime, 26_000m, 30_000m, today.AddDays(14), now.AddDays(-20)), now.AddDays(-19)), now.AddDays(-3)),
@@ -76,6 +83,10 @@ public static class DbInitializer
                 "City Hall Annex", EmploymentType.FullTime, 72_000m, 85_000m, today.AddDays(30), now.AddDays(-6)), now.AddDays(-5)),
             Posting(publicWorks, worksDepartment, "Maintenance Worker", "Repair streets, sidewalks and storm drains.",
                 "Public Works Yard", EmploymentType.FullTime, 40_000m, 47_000m, today.AddDays(40), now.AddDays(-4)));
+
+        context.JobApplications.AddRange(
+            JobApplication.Submit(coordinator, candidate.Id, "I run the after-school program at my neighborhood library.", now.AddDays(-1)),
+            appliedToGroundskeeper);
 
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);

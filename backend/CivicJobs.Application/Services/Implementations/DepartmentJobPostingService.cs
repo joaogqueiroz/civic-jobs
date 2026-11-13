@@ -1,4 +1,3 @@
-using CivicJobs.Application.Exceptions;
 using CivicJobs.Application.InputModels;
 using CivicJobs.Application.Services.Interfaces;
 using CivicJobs.Application.ViewModels;
@@ -60,14 +59,7 @@ public sealed class DepartmentJobPostingService(
     private async Task<JobPosting> GetDepartmentPostingAsync(Guid managerId, Guid id, CancellationToken cancellationToken)
     {
         var department = await users.GetDepartmentOfAsync(departments, managerId, cancellationToken);
-        var posting = await postings.GetByIdAsync(id, cancellationToken);
 
-        // Another department's posting, or a draft the recruiter hasn't submitted, is reported as not found (BR-16).
-        if (posting is null || posting.DepartmentId != department.Id || posting.Status == JobPostingStatus.Draft)
-        {
-            throw new NotFoundException("We couldn't find that job posting in your department.");
-        }
-
-        return posting;
+        return await postings.GetDepartmentPostingAsync(department, id, cancellationToken);
     }
 }
