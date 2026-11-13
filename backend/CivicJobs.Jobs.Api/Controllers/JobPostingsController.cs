@@ -1,5 +1,5 @@
 using CivicJobs.Application.InputModels;
-using CivicJobs.Application.Services;
+using CivicJobs.Application.Services.Interfaces;
 using CivicJobs.Application.ViewModels;
 using CivicJobs.Core.Enums;
 using CivicJobs.Infrastructure.Web;

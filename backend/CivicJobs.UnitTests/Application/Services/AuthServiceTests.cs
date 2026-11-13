@@ -1,7 +1,7 @@
 using CivicJobs.Application.Abstractions;
 using CivicJobs.Application.Exceptions;
 using CivicJobs.Application.InputModels;
-using CivicJobs.Application.Services;
+using CivicJobs.Application.Services.Implementations;
 using CivicJobs.Application.Validators;
 using CivicJobs.Application.ViewModels;
 using CivicJobs.Core.Entities;

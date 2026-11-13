@@ -1,5 +1,5 @@
 using CivicJobs.Application.Exceptions;
-using CivicJobs.Application.Services;
+using CivicJobs.Application.Services.Implementations;
 using CivicJobs.Core.Entities;
 using CivicJobs.Core.Repositories;
 using NSubstitute;

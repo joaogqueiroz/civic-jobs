@@ -1,6 +1,6 @@
 using CivicJobs.Application.Exceptions;
 using CivicJobs.Application.InputModels;
-using CivicJobs.Application.Services;
+using CivicJobs.Application.Services.Implementations;
 using CivicJobs.Application.Validators;
 using CivicJobs.Core.Entities;
 using CivicJobs.Core.Enums;

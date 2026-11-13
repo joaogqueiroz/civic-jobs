@@ -2,7 +2,7 @@ using CivicJobs.Application.InputModels;
 using CivicJobs.Application.ViewModels;
 using CivicJobs.Core.Enums;
 
-namespace CivicJobs.Application.Services;
+namespace CivicJobs.Application.Services.Interfaces;
 
 public interface IJobPostingService
 {
