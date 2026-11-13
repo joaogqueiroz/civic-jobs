@@ -1,3 +1,4 @@
+using CivicJobs.Application.Abstractions;
 using CivicJobs.Application.Exceptions;
 using CivicJobs.Application.InputModels;
 using CivicJobs.Application.Services.Implementations;
@@ -21,7 +22,16 @@ public class JobApplicationServiceTests
     private readonly FakeTimeProvider _timeProvider = new(Now);
     private readonly IJobApplicationRepository _applications = Substitute.For<IJobApplicationRepository>();
     private readonly IJobPostingRepository _postings = Substitute.For<IJobPostingRepository>();
-    private readonly Guid _candidateId = Guid.NewGuid();
+    private readonly IUserRepository _users = Substitute.For<IUserRepository>();
+    private readonly IEmailSender _emailSender = Substitute.For<IEmailSender>();
+    private readonly User _candidate = User.CreateCandidate("candidate@example.com", "Alex Kim", "hashed-password", Now);
+    private readonly Guid _candidateId;
+
+    public JobApplicationServiceTests()
+    {
+        _candidateId = _candidate.Id;
+        _users.GetByIdAsync(_candidateId, Arg.Any<CancellationToken>()).Returns(_candidate);
+    }
 
     #region Apply
 
@@ -114,6 +124,38 @@ public class JobApplicationServiceTests
 
     #endregion
 
+    #region Notifications (FR-23)
+
+    [Fact]
+    [Trait("Requirement", "FR-23")]
+    public async Task ApplyAsync_ToOpenPosting_EmailsTheCandidateAConfirmation()
+    {
+        var posting = StoredPosting(JobPostingStatus.Open);
+
+        await CreateService().ApplyAsync(_candidateId, Input(posting.Id), CancellationToken.None);
+
+        await _emailSender.Received(1).SendAsync(
+            "candidate@example.com",
+            "We received your application for Park Ranger",
+            Arg.Is<string>(body => body.Contains("Alex Kim") && body.Contains("Parks & Recreation")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-23")]
+    public async Task ApplyAsync_WhenApplicationIsNotSaved_SendsNoEmail()
+    {
+        var posting = StoredPosting(JobPostingStatus.Open);
+        _applications.ExistsAsync(posting.Id, _candidateId, Arg.Any<CancellationToken>()).Returns(true);
+
+        var apply = () => CreateService().ApplyAsync(_candidateId, Input(posting.Id), CancellationToken.None);
+
+        await apply.ShouldThrowAsync<ConflictException>();
+        await _emailSender.DidNotReceiveWithAnyArgs().SendAsync(default!, default!, default!, default);
+    }
+
+    #endregion
+
     #region My applications
 
     [Fact]
@@ -140,7 +182,7 @@ public class JobApplicationServiceTests
     #endregion
 
     private JobApplicationService CreateService() =>
-        new(new ApplyInputModelValidator(), _applications, _postings, _timeProvider);
+        new(new ApplyInputModelValidator(), _applications, _postings, _users, _emailSender, _timeProvider);
 
     private static ApplyInputModel Input(Guid postingId) => new() { JobPostingId = postingId, CoverLetter = "I love parks." };
 

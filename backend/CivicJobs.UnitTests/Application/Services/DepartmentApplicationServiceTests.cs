@@ -1,3 +1,4 @@
+using CivicJobs.Application.Abstractions;
 using CivicJobs.Application.Exceptions;
 using CivicJobs.Application.InputModels;
 using CivicJobs.Application.Services.Implementations;
@@ -23,6 +24,7 @@ public class DepartmentApplicationServiceTests
     private readonly IJobPostingRepository _postings = Substitute.For<IJobPostingRepository>();
     private readonly IUserRepository _users = Substitute.For<IUserRepository>();
     private readonly IDepartmentRepository _departments = Substitute.For<IDepartmentRepository>();
+    private readonly IEmailSender _emailSender = Substitute.For<IEmailSender>();
     private readonly Department _parks = Department.Create(Guid.NewGuid(), "Parks & Recreation", Now);
     private readonly User _manager;
     private readonly User _candidate = User.CreateCandidate("candidate@example.com", "Alex Kim", "hashed-password", Now);
@@ -140,8 +142,42 @@ public class DepartmentApplicationServiceTests
 
     #endregion
 
+    #region Notifications (FR-23)
+
+    [Theory]
+    [Trait("Requirement", "FR-23")]
+    [InlineData(JobApplicationStatus.UnderReview, "Under review")]
+    [InlineData(JobApplicationStatus.Rejected, "Rejected")]
+    public async Task ChangeStatusAsync_EmailsTheCandidateTheNewStatus(JobApplicationStatus status, string label)
+    {
+        var application = StoredApplication(StoredPosting(_parks.Id));
+
+        await CreateService().ChangeStatusAsync(_manager.Id, application.Id, StatusInput(status), CancellationToken.None);
+
+        await _emailSender.Received(1).SendAsync(
+            "candidate@example.com",
+            $"Your application for Park Ranger: {label}",
+            Arg.Is<string>(body => body.Contains("Alex Kim")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-23")]
+    public async Task ChangeStatusAsync_WhenTransitionIsNotAllowed_SendsNoEmail()
+    {
+        var application = StoredApplication(StoredPosting(_parks.Id));
+
+        var change = () => CreateService().ChangeStatusAsync(
+            _manager.Id, application.Id, StatusInput(JobApplicationStatus.Hired), CancellationToken.None);
+
+        await change.ShouldThrowAsync<InvalidStatusTransitionException>();
+        await _emailSender.DidNotReceiveWithAnyArgs().SendAsync(default!, default!, default!, default);
+    }
+
+    #endregion
+
     private DepartmentApplicationService CreateService() =>
-        new(new ChangeApplicationStatusInputModelValidator(), _applications, _postings, _users, _departments, _timeProvider);
+        new(new ChangeApplicationStatusInputModelValidator(), _applications, _postings, _users, _departments, _emailSender, _timeProvider);
 
     private static ChangeApplicationStatusInputModel StatusInput(JobApplicationStatus status) => new() { Status = status };
 
