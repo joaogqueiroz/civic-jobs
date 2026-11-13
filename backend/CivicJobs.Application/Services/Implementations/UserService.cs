@@ -5,7 +5,10 @@ using CivicJobs.Core.Repositories;
 
 namespace CivicJobs.Application.Services.Implementations;
 
-public sealed class UserService(IUserRepository users) : IUserService
+public sealed class UserService(
+    IUserRepository users,
+    IAgencyRepository agencies,
+    IDepartmentRepository departments) : IUserService
 {
     public async Task<UserViewModel> GetCurrentAsync(Guid userId, CancellationToken cancellationToken)
     {
@@ -13,6 +16,11 @@ public sealed class UserService(IUserRepository users) : IUserService
         var user = await users.GetByIdAsync(userId, cancellationToken)
             ?? throw new UnauthorizedException("Your session has ended. Log in again to continue.");
 
-        return UserViewModel.FromEntity(user);
+        var agency = user.AgencyId is { } agencyId ? await agencies.GetByIdAsync(agencyId, cancellationToken) : null;
+        var department = user.DepartmentId is { } departmentId
+            ? await departments.GetByIdAsync(departmentId, cancellationToken)
+            : null;
+
+        return UserViewModel.FromEntity(user, agency, department);
     }
 }

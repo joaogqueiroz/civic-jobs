@@ -13,6 +13,8 @@ public sealed class JobPostingService(
     IValidator<CreateJobPostingInputModel> createValidator,
     IValidator<UpdateJobPostingInputModel> updateValidator,
     IJobPostingRepository repository,
+    IUserRepository users,
+    IDepartmentRepository departments,
     TimeProvider timeProvider) : IJobPostingService
 {
     public async Task<JobPostingViewModel> CreateAsync(
@@ -22,10 +24,14 @@ public sealed class JobPostingService(
     {
         await createValidator.ValidateAndThrowAsync(input, cancellationToken);
 
+        // The department comes from the recruiter's account, never from the request (BR-13).
+        var department = await users.GetDepartmentOfAsync(departments, userId, cancellationToken);
+
         var posting = JobPosting.Create(
             createdByUserId: userId,
+            departmentId: department.Id,
+            department: department.Name,
             title: input.Title,
-            department: input.Department,
             description: input.Description,
             location: input.Location,
             employmentType: input.EmploymentType,
@@ -70,7 +76,6 @@ public sealed class JobPostingService(
 
         posting.Update(
             title: input.Title,
-            department: input.Department,
             description: input.Description,
             location: input.Location,
             employmentType: input.EmploymentType,

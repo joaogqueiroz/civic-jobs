@@ -11,6 +11,9 @@ namespace CivicJobs.Infrastructure.Auth;
 
 public sealed class JwtTokenService(IOptions<JwtOptions> options, TimeProvider timeProvider) : ITokenService
 {
+    /// <summary>The claim [Authorize(Roles = ...)] reads, set as RoleClaimType in the JWT bearer options.</summary>
+    public const string RoleClaimType = "role";
+
     private readonly JsonWebTokenHandler _handler = new();
 
     public AuthTokenViewModel CreateToken(User user)
@@ -28,6 +31,7 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options, TimeProvider t
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim(JwtRegisteredClaimNames.Name, user.FullName),
+                new Claim(RoleClaimType, user.Role.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             ]),
             IssuedAt = now.UtcDateTime,

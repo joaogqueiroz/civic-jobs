@@ -18,11 +18,16 @@ public static class DependencyInjection
         services.AddSingleton<IValidator<UpdateJobPostingInputModel>, UpdateJobPostingInputModelValidator>();
         services.AddSingleton<IValidator<RegisterInputModel>, RegisterInputModelValidator>();
         services.AddSingleton<IValidator<LoginInputModel>, LoginInputModelValidator>();
+        services.AddSingleton<IValidator<CreateDepartmentInputModel>, CreateDepartmentInputModelValidator>();
+        services.AddSingleton<IValidator<CreateStaffInputModel>, CreateStaffInputModelValidator>();
+        services.AddSingleton<IValidator<ChangeRoleInputModel>, ChangeRoleInputModelValidator>();
 
         services.AddScoped<IJobPostingService, JobPostingService>();
         services.AddScoped<IJobPostingExpirationService, JobPostingExpirationService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IDepartmentService, DepartmentService>();
+        services.AddScoped<IStaffService, StaffService>();
 
         return services;
     }

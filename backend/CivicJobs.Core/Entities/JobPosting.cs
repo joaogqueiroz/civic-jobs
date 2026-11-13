@@ -7,6 +7,9 @@ public class JobPosting
 {
     public Guid Id { get; private set; }
     public string Title { get; private set; } = string.Empty;
+    public Guid DepartmentId { get; private set; }
+
+    /// <summary>The department name when the posting was created, kept as part of the public record.</summary>
     public string Department { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
     public string Location { get; private set; } = string.Empty;
@@ -25,8 +28,9 @@ public class JobPosting
 
     public static JobPosting Create(
         Guid createdByUserId,
-        string title,
+        Guid departmentId,
         string department,
+        string title,
         string description,
         string location,
         EmploymentType employmentType,
@@ -40,13 +44,20 @@ public class JobPosting
             throw new DomainValidationException("CreatedByUserId is required.");
         }
 
-        ValidateDetails(title, department, description, location, employmentType, salaryMin, salaryMax);
+        if (departmentId == Guid.Empty)
+        {
+            throw new DomainValidationException("DepartmentId is required.");
+        }
+
+        Guard.Required(department, nameof(Department));
+        ValidateDetails(title, description, location, employmentType, salaryMin, salaryMax);
         EnsureClosingDateIsNotInThePast(closingDate, createdAt);
 
         return new JobPosting
         {
             Id = Guid.NewGuid(),
             Title = title,
+            DepartmentId = departmentId,
             Department = department,
             Description = description,
             Location = location,
@@ -63,7 +74,6 @@ public class JobPosting
 
     public void Update(
         string title,
-        string department,
         string description,
         string location,
         EmploymentType employmentType,
@@ -74,7 +84,7 @@ public class JobPosting
     {
         EnsureCanBeEdited();
 
-        ValidateDetails(title, department, description, location, employmentType, salaryMin, salaryMax);
+        ValidateDetails(title, description, location, employmentType, salaryMin, salaryMax);
 
         if (Status == JobPostingStatus.Open)
         {
@@ -86,7 +96,6 @@ public class JobPosting
         }
 
         Title = title;
-        Department = department;
         Description = description;
         Location = location;
         EmploymentType = employmentType;
@@ -142,7 +151,6 @@ public class JobPosting
 
     private static void ValidateDetails(
         string title,
-        string department,
         string description,
         string location,
         EmploymentType employmentType,
@@ -150,7 +158,6 @@ public class JobPosting
         decimal salaryMax)
     {
         Guard.Required(title, nameof(Title));
-        Guard.Required(department, nameof(Department));
         Guard.Required(description, nameof(Description));
         Guard.Required(location, nameof(Location));
 

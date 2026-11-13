@@ -30,6 +30,8 @@ public static class DependencyInjection
         services.AddDbContext<CivicJobsDbContext>(options => options.UseSqlite(connectionString));
         services.AddScoped<IJobPostingRepository, JobPostingRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IAgencyRepository, AgencyRepository>();
+        services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))

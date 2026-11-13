@@ -9,9 +9,10 @@ using Microsoft.AspNetCore.Mvc;
 namespace CivicJobs.Jobs.Api.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = nameof(UserRole.Recruiter))]
 [Route("api/job-postings")]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(StatusCodes.Status403Forbidden)]
 public sealed class JobPostingsController(IJobPostingService jobPostingService) : ControllerBase
 {
     [HttpGet]

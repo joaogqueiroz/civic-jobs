@@ -34,44 +34,49 @@ public static class DbInitializer
         var today = DateOnly.FromDateTime(now.UtcDateTime);
         var passwordHash = passwordHasher.Hash(DemoPassword);
 
-        var parks = User.Create("recruiter@cityofexample.gov", "Jordan Lee", passwordHash, now.AddDays(-30));
-        var publicWorks = User.Create("recruiter2@cityofexample.gov", "Taylor Morgan", passwordHash, now.AddDays(-30));
+        var agency = Agency.Create("City of Example", now.AddDays(-60));
+        var parksDepartment = Department.Create(agency.Id, "Parks & Recreation", now.AddDays(-60));
+        var worksDepartment = Department.Create(agency.Id, "Public Works", now.AddDays(-60));
 
-        context.Users.AddRange(parks, publicWorks);
+        User Staff(string email, string fullName, UserRole role, Department? department) =>
+            User.CreateStaff(email, fullName, passwordHash, role, agency.Id, department?.Id, now.AddDays(-30));
+
+        var admin = Staff("admin@cityofexample.gov", "Casey Rivera", UserRole.Admin, null);
+        var parks = Staff("recruiter@cityofexample.gov", "Jordan Lee", UserRole.Recruiter, parksDepartment);
+        var publicWorks = Staff("recruiter2@cityofexample.gov", "Taylor Morgan", UserRole.Recruiter, worksDepartment);
+        var parksManager = Staff("manager@cityofexample.gov", "Sam Patel", UserRole.HiringManager, parksDepartment);
+        var worksManager = Staff("manager2@cityofexample.gov", "Riley Chen", UserRole.HiringManager, worksDepartment);
+        var candidate = User.CreateCandidate("candidate@example.com", "Alex Kim", passwordHash, now.AddDays(-15));
+
+        JobPosting Posting(User owner, Department department, string title, string description, string location,
+            EmploymentType employmentType, decimal salaryMin, decimal salaryMax, DateOnly closingDate, DateTimeOffset createdAt) =>
+            JobPosting.Create(owner.Id, department.Id, department.Name, title, description, location, employmentType,
+                salaryMin, salaryMax, closingDate, createdAt);
+
+        context.Agencies.Add(agency);
+        context.Departments.AddRange(parksDepartment, worksDepartment);
+        context.Users.AddRange(admin, parks, publicWorks, parksManager, worksManager, candidate);
         context.JobPostings.AddRange(
-            Posting(parks, "Park Ranger", "Parks & Recreation", "Patrol city parks, enforce park rules and help visitors.",
+            Posting(parks, parksDepartment, "Park Ranger", "Patrol city parks, enforce park rules and help visitors.",
                 "Central Park District", EmploymentType.FullTime, 48_000m, 58_000m, today.AddDays(45), now.AddDays(-2)),
-            Posting(parks, "Seasonal Lifeguard", "Parks & Recreation", "Supervise swimmers at city pools during the summer season.",
+            Posting(parks, parksDepartment, "Seasonal Lifeguard", "Supervise swimmers at city pools during the summer season.",
                 "Riverside Aquatic Center", EmploymentType.Temporary, 32_000m, 36_000m, today.AddDays(60), now.AddDays(-1)),
-            Published(Posting(parks, "Recreation Program Coordinator", "Parks & Recreation",
+            Published(Posting(parks, parksDepartment, "Recreation Program Coordinator",
                 "Plan and run youth and senior programs at community centers.", "Eastside Community Center",
                 EmploymentType.FullTime, 55_000m, 65_000m, today.AddDays(30), now.AddDays(-10)), now.AddDays(-9)),
-            Published(Posting(parks, "Groundskeeper", "Parks & Recreation", "Maintain lawns, trails and playgrounds across city parks.",
+            Published(Posting(parks, parksDepartment, "Groundskeeper", "Maintain lawns, trails and playgrounds across city parks.",
                 "North Parks Yard", EmploymentType.PartTime, 28_000m, 34_000m, today.AddDays(21), now.AddDays(-8)), now.AddDays(-7)),
-            Closed(Published(Posting(parks, "Community Center Assistant", "Parks & Recreation",
+            Closed(Published(Posting(parks, parksDepartment, "Community Center Assistant",
                 "Front desk support and room bookings at the community center.", "Westside Community Center",
                 EmploymentType.PartTime, 26_000m, 30_000m, today.AddDays(14), now.AddDays(-20)), now.AddDays(-19)), now.AddDays(-3)),
-            Published(Posting(publicWorks, "Civil Engineer I", "Public Works", "Design and review street and drainage improvement projects.",
+            Published(Posting(publicWorks, worksDepartment, "Civil Engineer I", "Design and review street and drainage improvement projects.",
                 "City Hall Annex", EmploymentType.FullTime, 72_000m, 85_000m, today.AddDays(30), now.AddDays(-6)), now.AddDays(-5)),
-            Posting(publicWorks, "Maintenance Worker", "Public Works", "Repair streets, sidewalks and storm drains.",
+            Posting(publicWorks, worksDepartment, "Maintenance Worker", "Repair streets, sidewalks and storm drains.",
                 "Public Works Yard", EmploymentType.FullTime, 40_000m, 47_000m, today.AddDays(40), now.AddDays(-4)));
 
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
-
-    private static JobPosting Posting(
-        User owner,
-        string title,
-        string department,
-        string description,
-        string location,
-        EmploymentType employmentType,
-        decimal salaryMin,
-        decimal salaryMax,
-        DateOnly closingDate,
-        DateTimeOffset createdAt) =>
-        JobPosting.Create(owner.Id, title, department, description, location, employmentType, salaryMin, salaryMax, closingDate, createdAt);
 
     private static JobPosting Published(JobPosting posting, DateTimeOffset publishedAt)
     {

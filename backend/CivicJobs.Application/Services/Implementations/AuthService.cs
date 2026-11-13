@@ -28,7 +28,7 @@ public sealed class AuthService(
             throw new ConflictException("An account with this email already exists. Log in, or use a different email.");
         }
 
-        var user = User.Create(
+        var user = User.CreateCandidate(
             email,
             input.FullName,
             passwordHasher.Hash(input.Password),

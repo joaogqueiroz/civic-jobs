@@ -47,6 +47,7 @@ public static class WebApiExtensions
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
                     ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
                     NameClaimType = JwtRegisteredClaimNames.Name,
+                    RoleClaimType = JwtTokenService.RoleClaimType,
                     ClockSkew = TimeSpan.FromSeconds(30)
                 };
             });

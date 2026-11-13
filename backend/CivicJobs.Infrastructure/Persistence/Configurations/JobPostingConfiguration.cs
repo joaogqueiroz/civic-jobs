@@ -27,5 +27,6 @@ public sealed class JobPostingConfiguration : IEntityTypeConfiguration<JobPostin
         builder.Property(p => p.SalaryMax).HasPrecision(18, 2);
 
         builder.HasIndex(p => new { p.CreatedByUserId, p.Status });
+        builder.HasIndex(p => new { p.DepartmentId, p.Status });
     }
 }
