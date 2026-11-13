@@ -1,3 +1,4 @@
+using CivicJobs.Application.Abstractions;
 using CivicJobs.Application.Exceptions;
 using CivicJobs.Application.InputModels;
 using CivicJobs.Application.Services.Interfaces;
@@ -13,6 +14,8 @@ public sealed class JobApplicationService(
     IValidator<ApplyInputModel> applyValidator,
     IJobApplicationRepository applications,
     IJobPostingRepository postings,
+    IUserRepository users,
+    IEmailSender emailSender,
     TimeProvider timeProvider) : IJobApplicationService
 {
     public async Task<CandidateApplicationViewModel> ApplyAsync(
@@ -36,8 +39,12 @@ public sealed class JobApplicationService(
             throw new ConflictException("You already applied to this position. Check My applications for its status.");
         }
 
+        var candidate = await users.GetByIdAsync(candidateId, cancellationToken)
+            ?? throw new UnauthorizedException("Your session has ended. Log in again to continue.");
+
         var application = JobApplication.Submit(posting, candidateId, input.CoverLetter, timeProvider.GetUtcNow());
         await applications.AddAsync(application, cancellationToken);
+        await emailSender.SendApplicationReceivedAsync(candidate, posting, cancellationToken);
 
         return CandidateApplicationViewModel.FromEntity(application, posting);
     }

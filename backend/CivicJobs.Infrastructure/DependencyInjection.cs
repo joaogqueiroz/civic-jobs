@@ -2,6 +2,7 @@ using System.Text;
 using CivicJobs.Application.Abstractions;
 using CivicJobs.Core.Repositories;
 using CivicJobs.Infrastructure.Auth;
+using CivicJobs.Infrastructure.Email;
 using CivicJobs.Infrastructure.Persistence;
 using CivicJobs.Infrastructure.Persistence.Repositories;
 using Microsoft.Data.Sqlite;
@@ -47,6 +48,7 @@ public static class DependencyInjection
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, JwtTokenService>();
+        services.AddSingleton<IEmailSender, LoggingEmailSender>();
 
         return services;
     }

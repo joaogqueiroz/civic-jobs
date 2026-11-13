@@ -1,3 +1,4 @@
+using CivicJobs.Application.Abstractions;
 using CivicJobs.Application.Exceptions;
 using CivicJobs.Application.InputModels;
 using CivicJobs.Application.Services.Interfaces;
@@ -13,6 +14,7 @@ public sealed class DepartmentApplicationService(
     IJobPostingRepository postings,
     IUserRepository users,
     IDepartmentRepository departments,
+    IEmailSender emailSender,
     TimeProvider timeProvider) : IDepartmentApplicationService
 {
     public async Task<IReadOnlyList<PostingApplicationViewModel>> ListByPostingAsync(
@@ -54,6 +56,12 @@ public sealed class DepartmentApplicationService(
         await applications.UpdateAsync(application, cancellationToken);
 
         var candidate = await users.GetByIdAsync(application.CandidateId, cancellationToken);
+
+        if (candidate is not null)
+        {
+            await emailSender.SendStatusChangedAsync(candidate, posting, application.Status, cancellationToken);
+        }
+
         return PostingApplicationViewModel.FromEntity(application, candidate);
     }
 }
