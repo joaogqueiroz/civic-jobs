@@ -174,6 +174,53 @@ public sealed class JobPostingRepositoryTests : IDisposable
     }
 
     #endregion
+
+    #region Expired open postings (BR-11)
+
+    [Fact]
+    [Trait("Rule", "BR-11")]
+    public async Task ListExpiredOpenAsync_ReturnsOpenPostingsThatClosedBeforeToday()
+    {
+        var expired = await SeedAsync(OpenPostingClosingOn(Today.AddDays(-1)));
+        await SeedAsync(OpenPostingClosingOn(Today));
+        await SeedAsync(OpenPostingClosingOn(Today.AddDays(1)));
+
+        var result = await Repository().ListExpiredOpenAsync(Today, CancellationToken.None);
+
+        result.Select(p => p.Id).ShouldBe([expired.Id]);
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-11")]
+    public async Task ListExpiredOpenAsync_IgnoresDraftAndClosedPostings()
+    {
+        var pastDate = Today.AddDays(-1);
+        var createdAt = Now.AddDays(-30);
+        await SeedAsync(Posting(_ownerId, createdAt, pastDate));
+        var closed = OpenPostingClosingOn(pastDate);
+        closed.Close(createdAt);
+        await SeedAsync(closed);
+
+        var result = await Repository().ListExpiredOpenAsync(Today, CancellationToken.None);
+
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-11")]
+    public async Task ListExpiredOpenAsync_ReturnsTrackedPostingsSoChangesCanBeSaved()
+    {
+        await SeedAsync(OpenPostingClosingOn(Today.AddDays(-1)));
+        var repository = Repository();
+        var expired = (await repository.ListExpiredOpenAsync(Today, CancellationToken.None)).Single();
+        expired.Close(Now);
+
+        await repository.UpdateAsync(expired, CancellationToken.None);
+
+        (await Repository().GetByIdAsync(expired.Id, CancellationToken.None))!.Status.ShouldBe(JobPostingStatus.Closed);
+    }
+
+    #endregion
     private static JobPosting Published(JobPosting posting)
     {
         posting.Publish(posting.CreatedAt);
