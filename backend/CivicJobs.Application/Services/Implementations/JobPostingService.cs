@@ -98,11 +98,11 @@ public sealed class JobPostingService(
         await repository.DeleteAsync(posting, cancellationToken);
     }
 
-    public async Task<JobPostingViewModel> PublishAsync(Guid userId, Guid id, CancellationToken cancellationToken)
+    public async Task<JobPostingViewModel> SubmitAsync(Guid userId, Guid id, CancellationToken cancellationToken)
     {
         var posting = await GetOwnedAsync(userId, id, cancellationToken);
 
-        posting.Publish(timeProvider.GetUtcNow());
+        posting.SubmitForApproval(timeProvider.GetUtcNow());
 
         await repository.UpdateAsync(posting, cancellationToken);
 

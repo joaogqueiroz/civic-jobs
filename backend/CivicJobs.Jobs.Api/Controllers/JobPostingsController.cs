@@ -62,12 +62,12 @@ public sealed class JobPostingsController(IJobPostingService jobPostingService) 
         return NoContent();
     }
 
-    [HttpPost("{id:guid}/publish")]
+    [HttpPost("{id:guid}/submit")]
     [ProducesResponseType<JobPostingViewModel>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<JobPostingViewModel>> Publish(Guid id, CancellationToken cancellationToken) =>
-        Ok(await jobPostingService.PublishAsync(User.GetUserId(), id, cancellationToken));
+    public async Task<ActionResult<JobPostingViewModel>> Submit(Guid id, CancellationToken cancellationToken) =>
+        Ok(await jobPostingService.SubmitAsync(User.GetUserId(), id, cancellationToken));
 
     [HttpPost("{id:guid}/close")]
     [ProducesResponseType<JobPostingViewModel>(StatusCodes.Status200OK)]

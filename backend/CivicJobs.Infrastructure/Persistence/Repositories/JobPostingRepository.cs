@@ -28,6 +28,26 @@ public sealed class JobPostingRepository(CivicJobsDbContext context) : IJobPosti
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<JobPosting>> ListByDepartmentAsync(
+        Guid departmentId,
+        JobPostingStatus? status,
+        CancellationToken cancellationToken)
+    {
+        var query = context.JobPostings
+            .AsNoTracking()
+            .Where(p => p.DepartmentId == departmentId && p.Status != JobPostingStatus.Draft);
+
+        if (status.HasValue)
+        {
+            query = query.Where(p => p.Status == status.Value);
+        }
+
+        return await query
+            .OrderByDescending(p => p.CreatedAt)
+            .ThenBy(p => p.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<JobPosting>> ListOpenAsync(
         DateOnly closingOnOrAfter,
         CancellationToken cancellationToken) =>

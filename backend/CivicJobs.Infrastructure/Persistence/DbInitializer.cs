@@ -59,6 +59,9 @@ public static class DbInitializer
         context.JobPostings.AddRange(
             Posting(parks, parksDepartment, "Park Ranger", "Patrol city parks, enforce park rules and help visitors.",
                 "Central Park District", EmploymentType.FullTime, 48_000m, 58_000m, today.AddDays(45), now.AddDays(-2)),
+            Submitted(Posting(parks, parksDepartment, "Aquatics Supervisor",
+                "Lead the lifeguard team and run water safety classes at city pools.", "Riverside Aquatic Center",
+                EmploymentType.FullTime, 52_000m, 61_000m, today.AddDays(50), now.AddDays(-1)), now.AddHours(-20)),
             Posting(parks, parksDepartment, "Seasonal Lifeguard", "Supervise swimmers at city pools during the summer season.",
                 "Riverside Aquatic Center", EmploymentType.Temporary, 32_000m, 36_000m, today.AddDays(60), now.AddDays(-1)),
             Published(Posting(parks, parksDepartment, "Recreation Program Coordinator",
@@ -78,9 +81,16 @@ public static class DbInitializer
         await transaction.CommitAsync(cancellationToken);
     }
 
+    private static JobPosting Submitted(JobPosting posting, DateTimeOffset submittedAt)
+    {
+        posting.SubmitForApproval(submittedAt);
+        return posting;
+    }
+
     private static JobPosting Published(JobPosting posting, DateTimeOffset publishedAt)
     {
-        posting.Publish(publishedAt);
+        posting.SubmitForApproval(publishedAt);
+        posting.Approve(publishedAt);
         return posting;
     }
 

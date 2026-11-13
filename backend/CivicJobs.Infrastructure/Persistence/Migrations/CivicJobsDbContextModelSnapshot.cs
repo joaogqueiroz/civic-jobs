@@ -97,6 +97,10 @@ namespace CivicJobs.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal>("SalaryMax")
                         .HasPrecision(18, 2)
                         .HasColumnType("TEXT");

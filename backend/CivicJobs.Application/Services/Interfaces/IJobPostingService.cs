@@ -16,7 +16,8 @@ public interface IJobPostingService
 
     Task DeleteAsync(Guid userId, Guid id, CancellationToken cancellationToken);
 
-    Task<JobPostingViewModel> PublishAsync(Guid userId, Guid id, CancellationToken cancellationToken);
+    /// <summary>Sends a Draft to the department's hiring manager (FR-08).</summary>
+    Task<JobPostingViewModel> SubmitAsync(Guid userId, Guid id, CancellationToken cancellationToken);
 
     Task<JobPostingViewModel> CloseAsync(Guid userId, Guid id, CancellationToken cancellationToken);
 

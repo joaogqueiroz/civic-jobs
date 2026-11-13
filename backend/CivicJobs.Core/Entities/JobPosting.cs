@@ -18,6 +18,9 @@ public class JobPosting
     public decimal SalaryMax { get; private set; }
     public DateOnly ClosingDate { get; private set; }
     public JobPostingStatus Status { get; private set; }
+
+    /// <summary>Why the hiring manager sent the posting back to Draft; cleared when it is submitted again (BR-17).</summary>
+    public string? RejectionReason { get; private set; }
     public Guid CreatedByUserId { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -105,36 +108,73 @@ public class JobPosting
         UpdatedAt = updatedAt;
     }
 
+    public const int RejectionReasonMaxLength = 500;
+
     public void EnsureCanBeEdited()
     {
-        if (Status == JobPostingStatus.Closed)
+        switch (Status)
         {
-            throw new InvalidStatusTransitionException("This posting is closed, so it can't be edited.");
+            case JobPostingStatus.Closed:
+                throw new InvalidStatusTransitionException("This posting is closed, so it can't be edited.");
+            case JobPostingStatus.PendingApproval:
+                throw new InvalidStatusTransitionException("This posting is waiting for approval, so it can't be edited.");
         }
     }
 
-    public void Publish(DateTimeOffset publishedAt)
+    public void SubmitForApproval(DateTimeOffset submittedAt)
     {
         if (Status != JobPostingStatus.Draft)
         {
-            throw new InvalidStatusTransitionException(Status == JobPostingStatus.Open
-                ? "This posting is already published."
-                : "This posting is closed and can't be published again.");
+            throw new InvalidStatusTransitionException(Status switch
+            {
+                JobPostingStatus.PendingApproval => "This posting is already waiting for approval.",
+                JobPostingStatus.Open => "This posting is already published.",
+                _ => "This posting is closed and can't be published again."
+            });
         }
 
-        EnsureClosingDateIsAfterToday(ClosingDate, publishedAt);
+        EnsureClosingDateIsAfterToday(ClosingDate, submittedAt);
+
+        Status = JobPostingStatus.PendingApproval;
+        RejectionReason = null;
+        UpdatedAt = submittedAt;
+    }
+
+    public void Approve(DateTimeOffset approvedAt)
+    {
+        EnsurePendingApproval();
+
+        // Checked again: the closing date may have passed while the posting waited for approval (BR-05).
+        EnsureClosingDateIsAfterToday(ClosingDate, approvedAt);
 
         Status = JobPostingStatus.Open;
-        UpdatedAt = publishedAt;
+        UpdatedAt = approvedAt;
+    }
+
+    public void Reject(string reason, DateTimeOffset rejectedAt)
+    {
+        EnsurePendingApproval();
+        Guard.Required(reason, nameof(RejectionReason));
+
+        var trimmed = reason.Trim();
+
+        if (trimmed.Length > RejectionReasonMaxLength)
+        {
+            throw new DomainValidationException($"Keep the reason under {RejectionReasonMaxLength} characters.");
+        }
+
+        Status = JobPostingStatus.Draft;
+        RejectionReason = trimmed;
+        UpdatedAt = rejectedAt;
     }
 
     public void Close(DateTimeOffset closedAt)
     {
         if (Status != JobPostingStatus.Open)
         {
-            throw new InvalidStatusTransitionException(Status == JobPostingStatus.Draft
-                ? "Publish this draft before closing it."
-                : "This posting is already closed.");
+            throw new InvalidStatusTransitionException(Status == JobPostingStatus.Closed
+                ? "This posting is already closed."
+                : "Only open postings can be closed.");
         }
 
         Status = JobPostingStatus.Closed;
@@ -146,6 +186,14 @@ public class JobPosting
         if (Status != JobPostingStatus.Draft)
         {
             throw new InvalidStatusTransitionException("Only drafts can be deleted. Published postings are kept as a public record.");
+        }
+    }
+
+    private void EnsurePendingApproval()
+    {
+        if (Status != JobPostingStatus.PendingApproval)
+        {
+            throw new InvalidStatusTransitionException("Only postings waiting for approval can be approved or rejected.");
         }
     }
 
