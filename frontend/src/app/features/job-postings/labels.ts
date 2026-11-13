@@ -1,6 +1,7 @@
 import { EmploymentType, JobPostingStatus } from '../../core/models';
 
-export const STATUSES: readonly JobPostingStatus[] = ['Draft', 'Open', 'Closed'];
+/** The life cycle of a posting, in order (BR-06). */
+export const STATUSES: readonly JobPostingStatus[] = ['Draft', 'PendingApproval', 'Open', 'Closed'];
 
 export const EMPLOYMENT_TYPES: readonly { value: EmploymentType; label: string }[] = [
   { value: 'FullTime', label: 'Full time' },

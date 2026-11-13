@@ -30,8 +30,9 @@ export class JobPostingsService {
     return this.http.delete<void>(`${API}/${id}`);
   }
 
-  publish(id: string): Observable<JobPosting> {
-    return this.http.post<JobPosting>(`${API}/${id}/publish`, null);
+  /** Sends a draft to the department's hiring manager (FR-08). */
+  submit(id: string): Observable<JobPosting> {
+    return this.http.post<JobPosting>(`${API}/${id}/submit`, null);
   }
 
   close(id: string): Observable<JobPosting> {

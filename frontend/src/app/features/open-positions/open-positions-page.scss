@@ -86,3 +86,27 @@ mat-progress-bar {
     padding: 16px;
   }
 }
+
+.apply {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.applied {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--cj-primary);
+  font-weight: 600;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  a {
+    color: var(--cj-primary);
+  }
+}

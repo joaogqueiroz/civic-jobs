@@ -3,15 +3,26 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { AuthService } from './auth.service';
-import { TokenStorage } from './token-storage';
+import { User } from './models';
 
 describe('AuthService', () => {
-  const inOneHour = () => new Date(Date.now() + 60 * 60 * 1000).toISOString();
-  const anHourAgo = () => new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const recruiter: User = {
+    id: '1',
+    email: 'recruiter@cityofexample.gov',
+    fullName: 'Jordan Lee',
+    role: 'Recruiter',
+    agencyId: 'a1',
+    agencyName: 'City of Example',
+    departmentId: 'd1',
+    departmentName: 'Parks & Recreation',
+    createdAt: '2026-11-08T12:00:00Z',
+  };
 
   let service: AuthService;
   let http: HttpTestingController;
-  let storage: TokenStorage;
+
+  const inOneHour = () => new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const anHourAgo = () => new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
   beforeEach(() => {
     localStorage.clear();
@@ -20,96 +31,115 @@ describe('AuthService', () => {
     });
     service = TestBed.inject(AuthService);
     http = TestBed.inject(HttpTestingController);
-    storage = TestBed.inject(TokenStorage);
   });
 
   afterEach(() => http.verify());
 
-  it('login posts the credentials and stores the token', () => {
-    service.login({ email: 'recruiter@cityofexample.gov', password: 'Demo@12345' }).subscribe();
+  it('login posts the credentials, then loads the user so the app knows the role', () => {
+    let loggedIn: User | undefined;
 
-    const request = http.expectOne('/identity/api/auth/login');
-    expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ email: 'recruiter@cityofexample.gov', password: 'Demo@12345' });
-    request.flush({ accessToken: 'jwt-token', expiresAt: inOneHour() });
+    service.login({ email: recruiter.email, password: 'Demo@12345' }).subscribe((user) => (loggedIn = user));
 
+    const login = http.expectOne('/identity/api/auth/login');
+    expect(login.request.method).toBe('POST');
+    expect(login.request.body).toEqual({ email: recruiter.email, password: 'Demo@12345' });
+    login.flush({ accessToken: 'set-as-a-cookie', expiresAt: '2026-11-08T13:00:00Z' });
+    http.expectOne('/identity/api/users/me').flush(recruiter);
+
+    expect(loggedIn?.role).toBe('Recruiter');
     expect(service.isAuthenticated()).toBe(true);
-    expect(service.accessToken()).toBe('jwt-token');
-    expect(storage.get()?.accessToken).toBe('jwt-token');
+    expect(service.home()).toBe('/job-postings');
   });
 
-  it('register posts the new user and does not log in', () => {
-    const input = { fullName: 'Jane Doe', email: 'jane@cityofexample.gov', password: 'Demo@12345' };
+  it('never keeps the token in localStorage: the session is an httpOnly cookie', () => {
+    service.login({ email: recruiter.email, password: 'Demo@12345' }).subscribe();
+    http.expectOne('/identity/api/auth/login').flush({ accessToken: 'secret-token', expiresAt: inOneHour() });
+    http.expectOne('/identity/api/users/me').flush(recruiter);
+
+    const stored = Object.keys(localStorage).map((key) => localStorage.getItem(key) ?? '');
+    expect(stored.some((value) => value.includes('secret-token'))).toBe(false);
+  });
+
+  it('register posts the new candidate and does not log in', () => {
+    const input = { fullName: 'Alex Kim', email: 'alex@example.com', password: 'Demo@12345' };
 
     service.register(input).subscribe();
 
     const request = http.expectOne('/identity/api/auth/register');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual(input);
-    request.flush({ id: '1', email: input.email, fullName: input.fullName, createdAt: '2026-11-08T12:00:00Z' });
+    request.flush({ ...recruiter, role: 'Candidate' });
     expect(service.isAuthenticated()).toBe(false);
   });
 
-  it('loadCurrentUser stores the user returned by /users/me', () => {
-    service.loadCurrentUser().subscribe();
+  it('restoreSession logs the user back in when the session cookie is still valid', () => {
+    localStorage.setItem('civicjobs.sessionExpiresAt', inOneHour());
 
-    http
-      .expectOne('/identity/api/users/me')
-      .flush({ id: '1', email: 'jane@cityofexample.gov', fullName: 'Jane Doe', createdAt: '2026-11-08T12:00:00Z' });
+    service.restoreSession().subscribe();
 
-    expect(service.currentUser()?.fullName).toBe('Jane Doe');
+    http.expectOne('/identity/api/users/me').flush(recruiter);
+
+    expect(service.currentUser()?.fullName).toBe('Jordan Lee');
+  });
+
+  it('restoreSession does not call the API when no session was started, so anonymous visits log no 401', () => {
+    let completed = false;
+
+    service.restoreSession().subscribe({ complete: () => (completed = true) });
+
+    http.expectNone('/identity/api/users/me');
+    expect(completed).toBe(true);
+    expect(service.isAuthenticated()).toBe(false);
+  });
+
+  it('restoreSession does not call the API when the session has expired', () => {
+    localStorage.setItem('civicjobs.sessionExpiresAt', anHourAgo());
+
+    service.restoreSession().subscribe();
+
+    http.expectNone('/identity/api/users/me');
+  });
+
+  it('restoreSession completes without a user when the API no longer accepts the session', () => {
+    localStorage.setItem('civicjobs.sessionExpiresAt', inOneHour());
+    let completed = false;
+
+    service.restoreSession().subscribe({ complete: () => (completed = true) });
+    http.expectOne('/identity/api/users/me').flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    expect(completed).toBe(true);
+    expect(service.isAuthenticated()).toBe(false);
+    expect(service.home()).toBe('/open-positions');
   });
 
   it('loadCurrentUser sends one request when called again while the first is still running', () => {
-    // After login, the login page and the app shell both ask for the current user at the same moment.
     service.loadCurrentUser().subscribe();
     service.loadCurrentUser().subscribe();
 
-    http
-      .expectOne('/identity/api/users/me')
-      .flush({ id: '1', email: 'jane@cityofexample.gov', fullName: 'Jane Doe', createdAt: '2026-11-08T12:00:00Z' });
+    http.expectOne('/identity/api/users/me').flush(recruiter);
 
-    expect(service.currentUser()?.fullName).toBe('Jane Doe');
+    expect(service.currentUser()?.fullName).toBe('Jordan Lee');
   });
 
-  it('loadCurrentUser asks again once the previous request has finished', () => {
-    const user = { id: '1', email: 'jane@cityofexample.gov', fullName: 'Jane Doe', createdAt: '2026-11-08T12:00:00Z' };
+  it('home is the first page of the role', () => {
     service.loadCurrentUser().subscribe();
-    http.expectOne('/identity/api/users/me').flush(user);
+    http.expectOne('/identity/api/users/me').flush({ ...recruiter, role: 'HiringManager' });
 
-    service.loadCurrentUser().subscribe();
-
-    http.expectOne('/identity/api/users/me').flush(user);
+    expect(service.home()).toBe('/department');
   });
 
-  it('is not authenticated when the stored token has expired', () => {
-    storage.set({ accessToken: 'old-token', expiresAt: anHourAgo() });
-
-    const restored = TestBed.runInInjectionContext(() => new AuthService());
-
-    expect(restored.isAuthenticated()).toBe(false);
-    expect(restored.accessToken()).toBeNull();
-  });
-
-  it('restores a valid token saved by a previous session', () => {
-    storage.set({ accessToken: 'saved-token', expiresAt: inOneHour() });
-
-    const restored = TestBed.runInInjectionContext(() => new AuthService());
-
-    expect(restored.isAuthenticated()).toBe(true);
-    expect(restored.accessToken()).toBe('saved-token');
-  });
-
-  it('logout clears the token and the user and navigates to /login', () => {
+  it('logout asks the API to expire the cookie, forgets the user and navigates to /login', () => {
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
-    service.login({ email: 'jane@cityofexample.gov', password: 'Demo@12345' }).subscribe();
-    http.expectOne('/identity/api/auth/login').flush({ accessToken: 'jwt-token', expiresAt: inOneHour() });
+    service.loadCurrentUser().subscribe();
+    http.expectOne('/identity/api/users/me').flush(recruiter);
 
     service.logout();
+    const request = http.expectOne('/identity/api/auth/logout');
+    expect(request.request.method).toBe('POST');
+    request.flush(null, { status: 204, statusText: 'No Content' });
 
     expect(service.isAuthenticated()).toBe(false);
-    expect(service.currentUser()).toBeNull();
-    expect(storage.get()).toBeNull();
+    expect(localStorage.getItem('civicjobs.sessionExpiresAt')).toBeNull();
     expect(navigate).toHaveBeenCalledWith('/login');
   });
 });

@@ -5,7 +5,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { switchMap } from 'rxjs';
 import { applyServerErrors } from '../../core/api-errors';
 import { AuthService } from '../../core/auth.service';
 import { Notifier } from '../../core/notifier';
@@ -43,11 +42,9 @@ export class LoginPage {
     this.submitting.set(true);
     this.credentialsError.set(null);
 
-    this.auth
-      .login(this.form.getRawValue())
-      .pipe(switchMap(() => this.auth.loadCurrentUser()))
-      .subscribe({
-        next: () => void this.router.navigateByUrl(this.returnUrl() || '/job-postings'),
+    this.auth.login(this.form.getRawValue()).subscribe({
+        // Back to where the guard stopped the user, or to the first page of their role.
+        next: () => void this.router.navigateByUrl(this.returnUrl() || this.auth.home()),
         error: (error: unknown) => {
           this.submitting.set(false);
           if (error instanceof HttpErrorResponse && error.status === 401) {
