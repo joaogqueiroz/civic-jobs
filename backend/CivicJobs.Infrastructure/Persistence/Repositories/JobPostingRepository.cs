@@ -28,6 +28,26 @@ public sealed class JobPostingRepository(CivicJobsDbContext context) : IJobPosti
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<JobPosting>> ListByDepartmentAsync(
+        Guid departmentId,
+        JobPostingStatus? status,
+        CancellationToken cancellationToken)
+    {
+        var query = context.JobPostings
+            .AsNoTracking()
+            .Where(p => p.DepartmentId == departmentId && p.Status != JobPostingStatus.Draft);
+
+        if (status.HasValue)
+        {
+            query = query.Where(p => p.Status == status.Value);
+        }
+
+        return await query
+            .OrderByDescending(p => p.CreatedAt)
+            .ThenBy(p => p.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<JobPosting>> ListOpenAsync(
         DateOnly closingOnOrAfter,
         CancellationToken cancellationToken) =>
@@ -38,6 +58,14 @@ public sealed class JobPostingRepository(CivicJobsDbContext context) : IJobPosti
             .ThenBy(p => p.Title)
             .ThenBy(p => p.Id)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<JobPosting>> ListExpiredOpenAsync(DateOnly today, CancellationToken cancellationToken) =>
+        await context.JobPostings
+            .Where(p => p.Status == JobPostingStatus.Open && p.ClosingDate < today)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<JobPosting>> ListByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        await context.JobPostings.AsNoTracking().Where(p => ids.Contains(p.Id)).ToListAsync(cancellationToken);
 
     public async Task AddAsync(JobPosting posting, CancellationToken cancellationToken)
     {

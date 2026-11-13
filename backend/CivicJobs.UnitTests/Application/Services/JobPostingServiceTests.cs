@@ -1,6 +1,6 @@
 using CivicJobs.Application.Exceptions;
 using CivicJobs.Application.InputModels;
-using CivicJobs.Application.Services;
+using CivicJobs.Application.Services.Implementations;
 using CivicJobs.Application.Validators;
 using CivicJobs.Core.Entities;
 using CivicJobs.Core.Enums;
@@ -21,6 +21,17 @@ public class JobPostingServiceTests
     private readonly Guid _userId = Guid.NewGuid();
     private readonly FakeTimeProvider _timeProvider = new(Now);
     private readonly IJobPostingRepository _repository = Substitute.For<IJobPostingRepository>();
+    private readonly IUserRepository _users = Substitute.For<IUserRepository>();
+    private readonly IDepartmentRepository _departments = Substitute.For<IDepartmentRepository>();
+    private readonly Department _department = Department.Create(Guid.NewGuid(), "Parks & Recreation", Now);
+
+    public JobPostingServiceTests()
+    {
+        // Any caller is a recruiter of _department unless a test says otherwise.
+        _users.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Recruiter(_department.Id));
+        _departments.GetByIdAsync(_department.Id, Arg.Any<CancellationToken>()).Returns(_department);
+    }
 
     #region Create
 
@@ -35,7 +46,7 @@ public class JobPostingServiceTests
         result.ShouldSatisfyAllConditions(
             () => result.Id.ShouldNotBe(Guid.Empty),
             () => result.Title.ShouldBe(input.Title),
-            () => result.Department.ShouldBe(input.Department),
+            () => result.Department.ShouldBe(_department.Name),
             () => result.Description.ShouldBe(input.Description),
             () => result.Location.ShouldBe(input.Location),
             () => result.EmploymentType.ShouldBe(input.EmploymentType),
@@ -78,6 +89,35 @@ public class JobPostingServiceTests
         saved.ShouldSatisfyAllConditions(
             () => saved.Id.ShouldBe(result.Id),
             () => saved.CreatedByUserId.ShouldBe(userId));
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-04")]
+    [Trait("Rule", "BR-13")]
+    public async Task CreateAsync_WithValidInput_SetsDepartmentFromRecruiterAccount()
+    {
+        JobPosting? saved = null;
+        _repository
+            .When(r => r.AddAsync(Arg.Any<JobPosting>(), Arg.Any<CancellationToken>()))
+            .Do(call => saved = call.Arg<JobPosting>());
+
+        await CreateService().CreateAsync(_userId, ValidInput(), CancellationToken.None);
+
+        saved.ShouldNotBeNull();
+        saved.DepartmentId.ShouldBe(_department.Id);
+        saved.Department.ShouldBe("Parks & Recreation");
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-04")]
+    public async Task CreateAsync_WhenUserNoLongerExists_ThrowsUnauthorizedException()
+    {
+        _users.GetByIdAsync(_userId, Arg.Any<CancellationToken>()).Returns((User?)null);
+
+        var create = () => CreateService().CreateAsync(_userId, ValidInput(), CancellationToken.None);
+
+        await create.ShouldThrowAsync<UnauthorizedException>();
+        await ShouldNotHaveSavedAnythingAsync();
     }
 
     #endregion
@@ -131,7 +171,8 @@ public class JobPostingServiceTests
     public async Task ListAsync_WithStatus_PassesOwnerAndStatusToRepositoryAndMapsResult()
     {
         var open = StoredPosting(_userId);
-        open.Publish(Now);
+        open.SubmitForApproval(Now);
+        open.Approve(Now);
         _repository
             .ListByOwnerAsync(_userId, JobPostingStatus.Open, Arg.Any<CancellationToken>())
             .Returns([open]);
@@ -228,7 +269,8 @@ public class JobPostingServiceTests
     public async Task UpdateAsync_WhenClosedAndInputIsInvalid_ThrowsInvalidStatusTransitionException()
     {
         var posting = StoredPosting(_userId);
-        posting.Publish(Now);
+        posting.SubmitForApproval(Now);
+        posting.Approve(Now);
         posting.Close(Now);
         var input = ValidUpdateInput();
         input.Title = "";
@@ -245,7 +287,8 @@ public class JobPostingServiceTests
     public async Task UpdateAsync_WhenClosed_ThrowsInvalidStatusTransitionException()
     {
         var posting = StoredPosting(_userId);
-        posting.Publish(Now);
+        posting.SubmitForApproval(Now);
+        posting.Approve(Now);
         posting.Close(Now);
 
         var update = () => CreateService().UpdateAsync(_userId, posting.Id, ValidUpdateInput(), CancellationToken.None);
@@ -280,7 +323,8 @@ public class JobPostingServiceTests
     public async Task DeleteAsync_WhenOpen_ThrowsInvalidStatusTransitionException()
     {
         var posting = StoredPosting(_userId);
-        posting.Publish(Now);
+        posting.SubmitForApproval(Now);
+        posting.Approve(Now);
 
         var delete = () => CreateService().DeleteAsync(_userId, posting.Id, CancellationToken.None);
 
@@ -304,11 +348,11 @@ public class JobPostingServiceTests
 
     #endregion
 
-    #region Publish
+    #region Submit for approval
 
     [Fact]
     [Trait("Requirement", "FR-08")]
-    public async Task PublishAsync_WhenDraftOwnedByCaller_ReturnsAndSavesOpenPosting()
+    public async Task SubmitAsync_WhenDraftOwnedByCaller_ReturnsAndSavesPendingPosting()
     {
         var posting = StoredPosting(_userId);
         JobPosting? saved = null;
@@ -316,35 +360,35 @@ public class JobPostingServiceTests
             .When(r => r.UpdateAsync(Arg.Any<JobPosting>(), Arg.Any<CancellationToken>()))
             .Do(call => saved = call.Arg<JobPosting>());
 
-        var result = await CreateService().PublishAsync(_userId, posting.Id, CancellationToken.None);
+        var result = await CreateService().SubmitAsync(_userId, posting.Id, CancellationToken.None);
 
-        result.Status.ShouldBe(JobPostingStatus.Open);
+        result.Status.ShouldBe(JobPostingStatus.PendingApproval);
         saved.ShouldNotBeNull();
-        saved.Status.ShouldBe(JobPostingStatus.Open);
+        saved.Status.ShouldBe(JobPostingStatus.PendingApproval);
     }
 
     [Fact]
     [Trait("Rule", "BR-05")]
-    public async Task PublishAsync_WhenClosingDateIsToday_ThrowsInvalidStatusTransitionException()
+    public async Task SubmitAsync_WhenClosingDateIsToday_ThrowsInvalidStatusTransitionException()
     {
         var posting = StoredPosting(_userId, closingDate: Today);
 
-        var publish = () => CreateService().PublishAsync(_userId, posting.Id, CancellationToken.None);
+        var submit = () => CreateService().SubmitAsync(_userId, posting.Id, CancellationToken.None);
 
-        await publish.ShouldThrowAsync<InvalidStatusTransitionException>();
+        await submit.ShouldThrowAsync<InvalidStatusTransitionException>();
 
         await ShouldNotHaveSavedAnythingAsync();
     }
 
     [Fact]
     [Trait("Rule", "BR-08")]
-    public async Task PublishAsync_WhenOwnedByAnotherUser_ThrowsNotFoundException()
+    public async Task SubmitAsync_WhenOwnedByAnotherUser_ThrowsNotFoundException()
     {
         var posting = StoredPosting(Guid.NewGuid());
 
-        var publish = () => CreateService().PublishAsync(_userId, posting.Id, CancellationToken.None);
+        var submit = () => CreateService().SubmitAsync(_userId, posting.Id, CancellationToken.None);
 
-        await publish.ShouldThrowAsync<NotFoundException>();
+        await submit.ShouldThrowAsync<NotFoundException>();
 
         await ShouldNotHaveSavedAnythingAsync();
     }
@@ -358,7 +402,8 @@ public class JobPostingServiceTests
     public async Task CloseAsync_WhenOpenOwnedByCaller_ReturnsAndSavesClosedPosting()
     {
         var posting = StoredPosting(_userId);
-        posting.Publish(Now);
+        posting.SubmitForApproval(Now);
+        posting.Approve(Now);
         JobPosting? saved = null;
         _repository
             .When(r => r.UpdateAsync(Arg.Any<JobPosting>(), Arg.Any<CancellationToken>()))
@@ -389,7 +434,8 @@ public class JobPostingServiceTests
     public async Task CloseAsync_WhenOwnedByAnotherUser_ThrowsNotFoundException()
     {
         var posting = StoredPosting(Guid.NewGuid());
-        posting.Publish(Now);
+        posting.SubmitForApproval(Now);
+        posting.Approve(Now);
 
         var close = () => CreateService().CloseAsync(_userId, posting.Id, CancellationToken.None);
 
@@ -409,7 +455,8 @@ public class JobPostingServiceTests
     public async Task ListPublicAsync_AsksForPostingsClosingTodayOrLaterAndMapsThem()
     {
         var open = StoredPosting(Guid.NewGuid());
-        open.Publish(Now);
+        open.SubmitForApproval(Now);
+        open.Approve(Now);
         _repository.ListOpenAsync(Today, Arg.Any<CancellationToken>()).Returns([open]);
 
         var result = await CreateService().ListPublicAsync(CancellationToken.None);
@@ -434,14 +481,21 @@ public class JobPostingServiceTests
             new CreateJobPostingInputModelValidator(_timeProvider),
             new UpdateJobPostingInputModelValidator(_timeProvider),
             _repository,
+            _users,
+            _departments,
             _timeProvider);
+
+    private static User Recruiter(Guid departmentId) =>
+        User.CreateStaff("recruiter@cityofexample.gov", "Jane Doe", "hashed-password",
+            UserRole.Recruiter, Guid.NewGuid(), departmentId, Now);
 
     private JobPosting StoredPosting(Guid ownerId, DateOnly? closingDate = null)
     {
         var posting = JobPosting.Create(
             createdByUserId: ownerId,
             title: "Park Ranger",
-            department: "Parks & Recreation",
+            departmentId: _department.Id,
+            department: _department.Name,
             description: "Patrol city parks and assist visitors.",
             location: "Central Park District",
             employmentType: EmploymentType.FullTime,
@@ -458,7 +512,6 @@ public class JobPostingServiceTests
     private static CreateJobPostingInputModel ValidInput() => new()
     {
         Title = "Park Ranger",
-        Department = "Parks & Recreation",
         Description = "Patrol city parks and assist visitors.",
         Location = "Central Park District",
         EmploymentType = EmploymentType.PartTime,
@@ -470,7 +523,6 @@ public class JobPostingServiceTests
     private static UpdateJobPostingInputModel ValidUpdateInput() => new()
     {
         Title = "Senior Park Ranger",
-        Department = "Parks & Recreation",
         Description = "Lead the ranger team.",
         Location = "Central Park District",
         EmploymentType = EmploymentType.FullTime,

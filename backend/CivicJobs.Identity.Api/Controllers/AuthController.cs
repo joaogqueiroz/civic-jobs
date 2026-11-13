@@ -1,6 +1,7 @@
 using CivicJobs.Application.InputModels;
-using CivicJobs.Application.Services;
+using CivicJobs.Application.Services.Interfaces;
 using CivicJobs.Application.ViewModels;
+using CivicJobs.Infrastructure.Web;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CivicJobs.Identity.Api.Controllers;
@@ -24,6 +25,20 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
     [ProducesResponseType<AuthTokenViewModel>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<AuthTokenViewModel>> Login(LoginInputModel input, CancellationToken cancellationToken) =>
-        Ok(await authService.LoginAsync(input, cancellationToken));
+    public async Task<ActionResult<AuthTokenViewModel>> Login(LoginInputModel input, CancellationToken cancellationToken)
+    {
+        var token = await authService.LoginAsync(input, cancellationToken);
+        SessionCookie.Append(Response, token.AccessToken, token.ExpiresAt);
+
+        return Ok(token);
+    }
+
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public IActionResult Logout()
+    {
+        SessionCookie.Delete(Response);
+
+        return NoContent();
+    }
 }

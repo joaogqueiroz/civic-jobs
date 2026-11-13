@@ -1,0 +1,167 @@
+:host {
+  display: block;
+}
+
+.page-header {
+  margin-bottom: 24px;
+
+  p {
+    margin: 4px 0 0;
+  }
+}
+
+mat-progress-bar {
+  margin-bottom: 16px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  background: var(--cj-surface);
+  border: 1px solid var(--cj-border);
+  border-radius: var(--cj-radius);
+}
+
+.section-title,
+.subsection-title {
+  margin: 0;
+}
+
+.subsection-title {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--cj-border);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.department-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    padding: 8px 12px;
+    background: var(--cj-bg);
+    border-radius: var(--cj-radius);
+  }
+}
+
+.inline-form {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+
+  mat-form-field {
+    flex: 1;
+  }
+
+  button {
+    height: 56px;
+  }
+}
+
+.staff-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.staff {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--cj-border);
+}
+
+.staff-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  font-weight: 600;
+}
+
+.email {
+  overflow-wrap: anywhere;
+}
+
+.staff-role {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.role-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+
+  mat-form-field {
+    flex: 1 1 180px;
+  }
+}
+
+.row-actions,
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.row-actions {
+  align-self: center;
+}
+
+.staff-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+  row-gap: 8px;
+
+  .form-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+.field-error {
+  color: var(--cj-danger);
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .panel {
+    padding: 16px;
+  }
+
+  .staff-form {
+    grid-template-columns: 1fr;
+  }
+}

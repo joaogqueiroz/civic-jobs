@@ -1,17 +1,20 @@
 using CivicJobs.Application.Exceptions;
 using CivicJobs.Application.InputModels;
+using CivicJobs.Application.Services.Interfaces;
 using CivicJobs.Application.ViewModels;
 using CivicJobs.Core.Entities;
 using CivicJobs.Core.Enums;
 using CivicJobs.Core.Repositories;
 using FluentValidation;
 
-namespace CivicJobs.Application.Services;
+namespace CivicJobs.Application.Services.Implementations;
 
 public sealed class JobPostingService(
     IValidator<CreateJobPostingInputModel> createValidator,
     IValidator<UpdateJobPostingInputModel> updateValidator,
     IJobPostingRepository repository,
+    IUserRepository users,
+    IDepartmentRepository departments,
     TimeProvider timeProvider) : IJobPostingService
 {
     public async Task<JobPostingViewModel> CreateAsync(
@@ -21,10 +24,14 @@ public sealed class JobPostingService(
     {
         await createValidator.ValidateAndThrowAsync(input, cancellationToken);
 
+        // The department comes from the recruiter's account, never from the request (BR-13).
+        var department = await users.GetDepartmentOfAsync(departments, userId, cancellationToken);
+
         var posting = JobPosting.Create(
             createdByUserId: userId,
+            departmentId: department.Id,
+            department: department.Name,
             title: input.Title,
-            department: input.Department,
             description: input.Description,
             location: input.Location,
             employmentType: input.EmploymentType,
@@ -61,7 +68,7 @@ public sealed class JobPostingService(
         UpdateJobPostingInputModel input,
         CancellationToken cancellationToken)
     {
-        // Order of checks: 404 (missing or not owned), 409 (Closed), 400 (invalid input), then the entity rules.
+        // Order of checks: 404 (missing or not owned), 409 (Closed or PendingApproval), 400 (invalid input), then the entity rules.
         var posting = await GetOwnedAsync(userId, id, cancellationToken);
         posting.EnsureCanBeEdited();
 
@@ -69,7 +76,6 @@ public sealed class JobPostingService(
 
         posting.Update(
             title: input.Title,
-            department: input.Department,
             description: input.Description,
             location: input.Location,
             employmentType: input.EmploymentType,
@@ -92,11 +98,11 @@ public sealed class JobPostingService(
         await repository.DeleteAsync(posting, cancellationToken);
     }
 
-    public async Task<JobPostingViewModel> PublishAsync(Guid userId, Guid id, CancellationToken cancellationToken)
+    public async Task<JobPostingViewModel> SubmitAsync(Guid userId, Guid id, CancellationToken cancellationToken)
     {
         var posting = await GetOwnedAsync(userId, id, cancellationToken);
 
-        posting.Publish(timeProvider.GetUtcNow());
+        posting.SubmitForApproval(timeProvider.GetUtcNow());
 
         await repository.UpdateAsync(posting, cancellationToken);
 

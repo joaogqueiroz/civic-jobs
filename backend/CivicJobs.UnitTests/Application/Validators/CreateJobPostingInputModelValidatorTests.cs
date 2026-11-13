@@ -72,43 +72,6 @@ public class CreateJobPostingInputModelValidatorTests
 
     #endregion
 
-    #region Department: required, up to 100 chars
-
-    [Theory]
-    [Trait("Rule", "BR-03")]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void Validate_WhenDepartmentIsMissing_HasDepartmentError(string? department)
-    {
-        var model = ValidModel();
-        model.Department = department!;
-
-        _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.Department);
-    }
-
-    [Fact]
-    [Trait("Rule", "BR-03")]
-    public void Validate_WhenDepartmentIsExactly100Chars_HasNoDepartmentError()
-    {
-        var model = ValidModel();
-        model.Department = new string('a', 100);
-
-        _validator.TestValidate(model).ShouldNotHaveValidationErrorFor(m => m.Department);
-    }
-
-    [Fact]
-    [Trait("Rule", "BR-03")]
-    public void Validate_WhenDepartmentIsLongerThan100Chars_HasDepartmentError()
-    {
-        var model = ValidModel();
-        model.Department = new string('a', 101);
-
-        _validator.TestValidate(model).ShouldHaveValidationErrorFor(m => m.Department);
-    }
-
-    #endregion
-
     #region Description: required, up to 4,000 chars
 
     [Theory]
@@ -268,7 +231,6 @@ public class CreateJobPostingInputModelValidatorTests
     private static CreateJobPostingInputModel ValidModel() => new()
     {
         Title = "Park Ranger",
-        Department = "Parks & Recreation",
         Description = "Patrol city parks and assist visitors.",
         Location = "Central Park District",
         EmploymentType = EmploymentType.FullTime,

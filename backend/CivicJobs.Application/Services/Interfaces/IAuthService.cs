@@ -1,7 +1,7 @@
 using CivicJobs.Application.InputModels;
 using CivicJobs.Application.ViewModels;
 
-namespace CivicJobs.Application.Services;
+namespace CivicJobs.Application.Services.Interfaces;
 
 public interface IAuthService
 {

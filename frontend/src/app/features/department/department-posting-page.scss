@@ -1,0 +1,156 @@
+:host {
+  display: block;
+}
+
+.back {
+  margin: -8px 0 8px -12px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  overflow-wrap: anywhere;
+}
+
+mat-progress-bar {
+  margin-bottom: 16px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 24px;
+  align-items: start;
+}
+
+.panel {
+  background: var(--cj-surface);
+  border: 1px solid var(--cj-border);
+  border-radius: var(--cj-radius);
+  padding: 24px;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  p {
+    margin: 0;
+  }
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px 24px;
+  margin: 16px 0;
+
+  dd {
+    margin: 2px 0 0;
+  }
+}
+
+.description {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.applications {
+  margin-top: 32px;
+}
+
+.count {
+  margin-left: 6px;
+  color: var(--cj-muted);
+  font-weight: 500;
+}
+
+.empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--cj-muted);
+  background: var(--cj-surface);
+  border: 1px dashed var(--cj-border);
+  border-radius: var(--cj-radius);
+}
+
+.application-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.application {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+
+  p {
+    margin: 0;
+  }
+
+  a {
+    color: var(--cj-primary);
+  }
+}
+
+.application-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.candidate {
+  font-weight: 600;
+}
+
+.cover-letter {
+  padding: 12px;
+  border-left: 3px solid var(--cj-border);
+  background: var(--cj-bg);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.application-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    order: -1;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel {
+    padding: 16px;
+  }
+
+  .application-top {
+    flex-direction: column-reverse;
+  }
+
+  .small a {
+    overflow-wrap: anywhere;
+  }
+}

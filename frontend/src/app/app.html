@@ -1,15 +1,24 @@
 <mat-toolbar class="toolbar">
-  <a class="brand" routerLink="/job-postings">
+  <a class="brand" routerLink="/">
     <mat-icon class="brand-icon" aria-hidden="true">work</mat-icon>
     <span>CivicJobs</span>
   </a>
 
+  <nav class="nav" aria-label="Main">
+    @for (link of links(); track link.path) {
+      <a mat-button [routerLink]="link.path" routerLinkActive="active-link" ariaCurrentWhenActive="page">
+        {{ link.label }}
+      </a>
+    }
+  </nav>
+
   <span class="spacer"></span>
 
-  @if (auth.isAuthenticated()) {
-    @if (auth.currentUser(); as user) {
-      <span class="user-name" data-testid="user-name">{{ user.fullName }}</span>
-    }
+  @if (auth.currentUser(); as user) {
+    <span class="user" data-testid="user-name">
+      <span class="user-name">{{ user.fullName }}</span>
+      <span class="user-role">{{ roleLabel() }}</span>
+    </span>
     <button mat-button type="button" (click)="auth.logout()">Log out</button>
   } @else {
     <a mat-button routerLink="/open-positions" routerLinkActive="active-link" ariaCurrentWhenActive="page">Open positions</a>

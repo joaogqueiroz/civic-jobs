@@ -15,6 +15,7 @@ public sealed class JobPostingRepositoryTests : IDisposable
 {
     private static readonly DateTimeOffset Now = new(2026, 11, 8, 12, 0, 0, TimeSpan.Zero);
     private static readonly DateOnly Today = DateOnly.FromDateTime(Now.UtcDateTime);
+    private static readonly Guid DepartmentId = Guid.NewGuid();
 
     private readonly SqliteTestDatabase _database = new();
     private readonly Guid _ownerId = Guid.NewGuid();
@@ -42,7 +43,8 @@ public sealed class JobPostingRepositoryTests : IDisposable
     {
         await SeedAsync(Posting(_ownerId));
         var open = Posting(_ownerId);
-        open.Publish(Now);
+        open.SubmitForApproval(Now);
+        open.Approve(Now);
         await SeedAsync(open);
 
         var result = await Repository().ListByOwnerAsync(_ownerId, JobPostingStatus.Open, CancellationToken.None);
@@ -78,6 +80,7 @@ public sealed class JobPostingRepositoryTests : IDisposable
         stored.ShouldNotBeNull();
         stored.ShouldSatisfyAllConditions(
             () => stored.Title.ShouldBe(posting.Title),
+            () => stored.DepartmentId.ShouldBe(DepartmentId),
             () => stored.Department.ShouldBe(posting.Department),
             () => stored.Description.ShouldBe(posting.Description),
             () => stored.Location.ShouldBe(posting.Location),
@@ -107,7 +110,8 @@ public sealed class JobPostingRepositoryTests : IDisposable
         var posting = await SeedAsync(Posting(_ownerId));
         var repository = Repository();
         var loaded = await repository.GetByIdAsync(posting.Id, CancellationToken.None);
-        loaded!.Publish(Now.AddHours(1));
+        loaded!.SubmitForApproval(Now.AddHours(1));
+        loaded!.Approve(Now.AddHours(1));
 
         await repository.UpdateAsync(loaded, CancellationToken.None);
 
@@ -174,9 +178,94 @@ public sealed class JobPostingRepositoryTests : IDisposable
     }
 
     #endregion
+
+    #region Department postings for the hiring manager (FR-15)
+
+    [Fact]
+    [Trait("Requirement", "FR-15")]
+    [Trait("Rule", "BR-16")]
+    public async Task ListByDepartmentAsync_ReturnsSubmittedPostingsOfThatDepartmentOnlyNewestFirst()
+    {
+        await SeedAsync(Posting(_ownerId));
+        var older = await SeedAsync(Submitted(Posting(_ownerId, createdAt: Now)));
+        var newer = await SeedAsync(Published(Posting(Guid.NewGuid(), createdAt: Now.AddMinutes(5))));
+        await SeedAsync(Submitted(Posting(_ownerId, departmentId: Guid.NewGuid())));
+
+        var result = await Repository().ListByDepartmentAsync(DepartmentId, null, CancellationToken.None);
+
+        result.Select(p => p.Id).ShouldBe([newer.Id, older.Id]);
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-15")]
+    public async Task ListByDepartmentAsync_WithStatus_ReturnsOnlyThatStatus()
+    {
+        var pending = await SeedAsync(Submitted(Posting(_ownerId)));
+        await SeedAsync(Published(Posting(_ownerId)));
+
+        var result = await Repository().ListByDepartmentAsync(DepartmentId, JobPostingStatus.PendingApproval, CancellationToken.None);
+
+        result.Select(p => p.Id).ShouldBe([pending.Id]);
+    }
+
+    #endregion
+
+    #region Expired open postings (BR-11)
+
+    [Fact]
+    [Trait("Rule", "BR-11")]
+    public async Task ListExpiredOpenAsync_ReturnsOpenPostingsThatClosedBeforeToday()
+    {
+        var expired = await SeedAsync(OpenPostingClosingOn(Today.AddDays(-1)));
+        await SeedAsync(OpenPostingClosingOn(Today));
+        await SeedAsync(OpenPostingClosingOn(Today.AddDays(1)));
+
+        var result = await Repository().ListExpiredOpenAsync(Today, CancellationToken.None);
+
+        result.Select(p => p.Id).ShouldBe([expired.Id]);
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-11")]
+    public async Task ListExpiredOpenAsync_IgnoresDraftAndClosedPostings()
+    {
+        var pastDate = Today.AddDays(-1);
+        var createdAt = Now.AddDays(-30);
+        await SeedAsync(Posting(_ownerId, createdAt, pastDate));
+        var closed = OpenPostingClosingOn(pastDate);
+        closed.Close(createdAt);
+        await SeedAsync(closed);
+
+        var result = await Repository().ListExpiredOpenAsync(Today, CancellationToken.None);
+
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-11")]
+    public async Task ListExpiredOpenAsync_ReturnsTrackedPostingsSoChangesCanBeSaved()
+    {
+        await SeedAsync(OpenPostingClosingOn(Today.AddDays(-1)));
+        var repository = Repository();
+        var expired = (await repository.ListExpiredOpenAsync(Today, CancellationToken.None)).Single();
+        expired.Close(Now);
+
+        await repository.UpdateAsync(expired, CancellationToken.None);
+
+        (await Repository().GetByIdAsync(expired.Id, CancellationToken.None))!.Status.ShouldBe(JobPostingStatus.Closed);
+    }
+
+    #endregion
+    private static JobPosting Submitted(JobPosting posting)
+    {
+        posting.SubmitForApproval(posting.CreatedAt);
+        return posting;
+    }
+
     private static JobPosting Published(JobPosting posting)
     {
-        posting.Publish(posting.CreatedAt);
+        posting.SubmitForApproval(posting.CreatedAt);
+        posting.Approve(posting.CreatedAt);
         return posting;
     }
 
@@ -185,7 +274,8 @@ public sealed class JobPostingRepositoryTests : IDisposable
     {
         var createdAt = new DateTimeOffset(closingDate.AddDays(-30).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
         var posting = Posting(Guid.NewGuid(), createdAt, closingDate);
-        posting.Publish(createdAt);
+        posting.SubmitForApproval(createdAt);
+        posting.Approve(createdAt);
         return posting;
     }
     private JobPostingRepository Repository() => new(_database.CreateContext());
@@ -196,10 +286,15 @@ public sealed class JobPostingRepositoryTests : IDisposable
         return posting;
     }
 
-    private static JobPosting Posting(Guid ownerId, DateTimeOffset? createdAt = null, DateOnly? closingDate = null) =>
+    private static JobPosting Posting(
+        Guid ownerId,
+        DateTimeOffset? createdAt = null,
+        DateOnly? closingDate = null,
+        Guid? departmentId = null) =>
         JobPosting.Create(
             createdByUserId: ownerId,
             title: "Park Ranger",
+            departmentId: departmentId ?? DepartmentId,
             department: "Parks & Recreation",
             description: "Patrol city parks and assist visitors.",
             location: "Central Park District",

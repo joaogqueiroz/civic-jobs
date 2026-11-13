@@ -1,5 +1,6 @@
 using CivicJobs.Application.Exceptions;
 using CivicJobs.Core.Entities;
+using CivicJobs.Core.Enums;
 using CivicJobs.Core.Repositories;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,23 @@ public sealed class UserRepository(CivicJobsDbContext context) : IUserRepository
 
     public Task<User?> GetByEmailAsync(string normalizedEmail, CancellationToken cancellationToken) =>
         context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail, cancellationToken);
+
+    public async Task<IReadOnlyList<User>> ListStaffByAgencyAsync(Guid agencyId, CancellationToken cancellationToken) =>
+        await context.Users
+            .AsNoTracking()
+            .Where(u => u.AgencyId == agencyId && u.Role != UserRole.Candidate)
+            .OrderBy(u => u.FullName)
+            .ThenBy(u => u.Id)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<User>> ListByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        await context.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToListAsync(cancellationToken);
+
+    public async Task UpdateAsync(User user, CancellationToken cancellationToken)
+    {
+        context.Users.Update(user);
+        await context.SaveChangesAsync(cancellationToken);
+    }
 
     public async Task AddAsync(User user, CancellationToken cancellationToken)
     {

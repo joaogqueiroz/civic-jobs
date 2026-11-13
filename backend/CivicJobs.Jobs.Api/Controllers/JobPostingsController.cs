@@ -1,5 +1,5 @@
 using CivicJobs.Application.InputModels;
-using CivicJobs.Application.Services;
+using CivicJobs.Application.Services.Interfaces;
 using CivicJobs.Application.ViewModels;
 using CivicJobs.Core.Enums;
 using CivicJobs.Infrastructure.Web;
@@ -9,9 +9,10 @@ using Microsoft.AspNetCore.Mvc;
 namespace CivicJobs.Jobs.Api.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = nameof(UserRole.Recruiter))]
 [Route("api/job-postings")]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(StatusCodes.Status403Forbidden)]
 public sealed class JobPostingsController(IJobPostingService jobPostingService) : ControllerBase
 {
     [HttpGet]
@@ -61,12 +62,12 @@ public sealed class JobPostingsController(IJobPostingService jobPostingService) 
         return NoContent();
     }
 
-    [HttpPost("{id:guid}/publish")]
+    [HttpPost("{id:guid}/submit")]
     [ProducesResponseType<JobPostingViewModel>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<JobPostingViewModel>> Publish(Guid id, CancellationToken cancellationToken) =>
-        Ok(await jobPostingService.PublishAsync(User.GetUserId(), id, cancellationToken));
+    public async Task<ActionResult<JobPostingViewModel>> Submit(Guid id, CancellationToken cancellationToken) =>
+        Ok(await jobPostingService.SubmitAsync(User.GetUserId(), id, cancellationToken));
 
     [HttpPost("{id:guid}/close")]
     [ProducesResponseType<JobPostingViewModel>(StatusCodes.Status200OK)]

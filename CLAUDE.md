@@ -21,14 +21,18 @@ No CQRS or MediatR. The Application layer uses plain services.
 backend/
   CivicJobs.slnx
   CivicJobs.Core/              Entities, Enums, Exceptions, Repositories (interfaces only). No project or package references.
-  CivicJobs.Application/       Services (IJobPostingService, IAuthService, IUserService), Abstractions (IPasswordHasher, ITokenService),
-                               InputModels, ViewModels, Validators. References Core only.
+  CivicJobs.Application/       Services/Interfaces and Services/Implementations (job postings, auth, users, departments, staff,
+                               approval, applications, expiration), Abstractions (IPasswordHasher, ITokenService, IEmailSender),
+                               InputModels, ViewModels, Validators. References Core only. Interfaces never sit next to their classes.
   CivicJobs.Infrastructure/    Persistence (CivicJobsDbContext, Configurations, Repositories, Migrations, DbInitializer),
-                               Auth (PasswordHasher, JwtTokenService, JwtOptions), DependencyInjection,
-                               Web (shared by both APIs: GlobalExceptionHandler, JWT bearer, Swagger, ClaimsPrincipal.GetUserId).
+                               Auth (PasswordHasher, JwtTokenService, JwtOptions), Email (LoggingEmailSender), DependencyInjection,
+                               Web (shared by both APIs: GlobalExceptionHandler, JWT bearer from header or session cookie,
+                               SessionCookie, Swagger, ClaimsPrincipal.GetUserId).
                                References Application and Core.
-  CivicJobs.Identity.Api/      AuthController, UsersController. References Application and Infrastructure.
-  CivicJobs.Jobs.Api/          JobPostingsController, PublicJobPostingsController (anonymous, FR-11). References Application and Infrastructure.
+  CivicJobs.Identity.Api/      AuthController, UsersController, DepartmentsController. References Application and Infrastructure.
+  CivicJobs.Jobs.Api/          JobPostingsController (Recruiter), DepartmentJobPostingsController and DepartmentApplicationsController
+                               (HiringManager), ApplicationsController (Candidate), PublicJobPostingsController (anonymous, FR-11),
+                               BackgroundServices/JobPostingExpirationWorker (BR-11). References Application and Infrastructure.
   CivicJobs.UnitTests/         Core/, Application/, Infrastructure/ (folders mirror the layers)
   CivicJobs.Identity.ApiTests/ endpoint tests with WebApplicationFactory
   CivicJobs.Jobs.ApiTests/     endpoint tests with WebApplicationFactory
@@ -47,13 +51,14 @@ The two API test projects are separate on purpose: each web project has its own 
 - Controllers are thin: receive the InputModel, call the service, map the result to an HTTP response.
 - Never expose entities in the API. InputModels in, ViewModels out.
 - The owner of a posting comes from the token claim (`sub`), never from the request body or query string.
-- A posting owned by another user returns 404.
+- A posting owned by another user returns 404. Anything out of a user's reach (another department or agency) also returns 404; 403 is only for the wrong role.
+- Each controller declares its role with `[Authorize(Roles = nameof(UserRole.X))]`.
 - Domain exceptions inherit from a base `DomainException` in Core:
   - `DomainValidationException`: invalid data that breaks an entity invariant (for example a bad salary range). Maps to 400.
-  - `InvalidStatusTransitionException`: an action not allowed in the current status (publish, close, edit or delete). Maps to 409.
+  - `InvalidStatusTransitionException`: an action not allowed in the current status (submit, approve, reject, close, edit, delete, apply or an application decision). Maps to 409.
 - Application exceptions (in `CivicJobs.Application/Exceptions`), for rules that need other data or ownership:
   - `NotFoundException`: the resource doesn't exist or belongs to another user (BR-08). Maps to 404.
-  - `ConflictException`: the email is already in use (BR-01). Maps to 409.
+  - `ConflictException`: the email or department name is already in use, the candidate already applied, or an admin changes their own role. Maps to 409.
   - `InvalidCredentialsException`: unknown email or wrong password, same message for both. Maps to 401.
   - `UnauthorizedException`: a valid token whose user no longer exists. Maps to 401.
 - FluentValidation errors map to 400 with `ValidationProblemDetails`; other errors use `ProblemDetails`. Use a global exception handler (`IExceptionHandler`), no try/catch in controllers.
@@ -118,11 +123,14 @@ docker compose down -v           # stop and delete the SQLite volume (fresh seed
 
 ```
 frontend/src/app/
-  core/           auth service, token storage, functional HTTP interceptor, auth guard, models
-  features/auth/            login and register pages
-  features/job-postings/    list (filter by status), form (create/edit), detail (publish, close, delete), job-postings.service.ts
-  features/open-positions/  public list of open postings for candidates (anonymous, FR-11)
-  shared/         small reusable components (status badge, confirm dialog)
+  core/           auth service (session from the httpOnly cookie), functional HTTP interceptor, role guard, models
+  features/auth/            login and candidate register pages
+  features/job-postings/    recruiter: list (filter by status), form (create/edit), detail (submit, close, delete)
+  features/department/      hiring manager: department postings, approve or reject, decide on applications
+  features/applications/    candidate: My applications
+  features/open-positions/  public list of open postings (anonymous, FR-11), Apply for candidates
+  features/admin/           admin: departments and staff roles
+  shared/         small reusable components (status badge, confirm dialog, text dialog, role labels)
 ```
 
 - `proxy.conf.json` maps `/identity` to http://localhost:5101 and `/jobs` to http://localhost:5102. The app calls relative URLs, so no CORS setup is needed in dev.
@@ -132,6 +140,7 @@ frontend/src/app/
 - Responsive layout (works at 375 px wide).
 - Zero errors and zero warnings in the browser console. Check before saying a task is done.
 - A few focused tests: auth service, interceptor and guard.
+- The token never reaches JavaScript: no Authorization header and no token in storage. Only the session expiry is kept, to skip the session check on anonymous visits.
 
 ## Don't
 

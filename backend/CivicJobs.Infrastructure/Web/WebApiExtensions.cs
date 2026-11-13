@@ -34,7 +34,23 @@ public static class WebApiExtensions
         services.AddProblemDetails();
         services.AddExceptionHandler<GlobalExceptionHandler>();
 
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(bearer =>
+        {
+            // The browser sends the token in the session cookie; API clients and Swagger use the Bearer header (BR-21).
+            bearer.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    if (string.IsNullOrEmpty(context.Request.Headers.Authorization)
+                        && context.Request.Cookies.TryGetValue(SessionCookie.Name, out var token))
+                    {
+                        context.Token = token;
+                    }
+
+                    return Task.CompletedTask;
+                }
+            };
+        });
         services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
             .Configure<IOptions<JwtOptions>>((bearer, jwtOptions) =>
             {
@@ -47,6 +63,7 @@ public static class WebApiExtensions
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
                     ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
                     NameClaimType = JwtRegisteredClaimNames.Name,
+                    RoleClaimType = JwtTokenService.RoleClaimType,
                     ClockSkew = TimeSpan.FromSeconds(30)
                 };
             });
