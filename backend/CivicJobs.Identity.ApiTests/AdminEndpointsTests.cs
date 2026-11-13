@@ -116,23 +116,34 @@ public sealed class AdminEndpointsTests(IdentityApiFactory factory) : IClassFixt
 
     [Fact]
     [Trait("Requirement", "FR-14")]
-    [Trait("Rule", "BR-22")]
-    public async Task ChangeRole_OfAStaffMemberAndOfTheAdminThemself_Returns200Then409()
+    public async Task ChangeRole_OfAStaffMemberOfTheAgency_Returns200WithTheNewRole()
     {
         var parks = await factory.CreateDepartmentAsync();
         var admin = await factory.CreateClientForAsync(UserRole.Admin, parks);
         await factory.CreateClientForAsync(UserRole.Recruiter, parks);
-        var staff = await admin.GetFromJsonAsync<List<StaffViewModel>>("/api/users", Json);
-        var recruiter = staff!.Single(s => s.Role == UserRole.Recruiter);
-        var self = staff.Single(s => s.Role == UserRole.Admin);
+        var recruiter = (await ListStaffAsync(admin)).Single(s => s.Role == UserRole.Recruiter);
 
-        var promote = await admin.PutAsJsonAsync($"/api/users/{recruiter.Id}/role",
+        var response = await admin.PutAsJsonAsync($"/api/users/{recruiter.Id}/role",
             new { role = "HiringManager", departmentId = parks.Id });
-        var demoteSelf = await admin.PutAsJsonAsync($"/api/users/{self.Id}/role",
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await response.Content.ReadFromJsonAsync<StaffViewModel>(Json))!.Role.ShouldBe(UserRole.HiringManager);
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-22")]
+    public async Task ChangeRole_OfTheAdminThemself_Returns409()
+    {
+        var parks = await factory.CreateDepartmentAsync();
+        var admin = await factory.CreateClientForAsync(UserRole.Admin, parks);
+        var self = (await ListStaffAsync(admin)).Single(s => s.Role == UserRole.Admin);
+
+        var response = await admin.PutAsJsonAsync($"/api/users/{self.Id}/role",
             new { role = "Recruiter", departmentId = parks.Id });
 
-        promote.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await promote.Content.ReadFromJsonAsync<StaffViewModel>(Json))!.Role.ShouldBe(UserRole.HiringManager);
-        demoteSelf.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
+
+    private static async Task<List<StaffViewModel>> ListStaffAsync(HttpClient admin) =>
+        (await admin.GetFromJsonAsync<List<StaffViewModel>>("/api/users", Json))!;
 }
