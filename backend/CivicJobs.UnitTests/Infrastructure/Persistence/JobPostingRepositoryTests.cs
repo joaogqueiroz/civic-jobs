@@ -15,6 +15,7 @@ public sealed class JobPostingRepositoryTests : IDisposable
 {
     private static readonly DateTimeOffset Now = new(2026, 11, 8, 12, 0, 0, TimeSpan.Zero);
     private static readonly DateOnly Today = DateOnly.FromDateTime(Now.UtcDateTime);
+    private static readonly Guid DepartmentId = Guid.NewGuid();
 
     private readonly SqliteTestDatabase _database = new();
     private readonly Guid _ownerId = Guid.NewGuid();
@@ -78,6 +79,7 @@ public sealed class JobPostingRepositoryTests : IDisposable
         stored.ShouldNotBeNull();
         stored.ShouldSatisfyAllConditions(
             () => stored.Title.ShouldBe(posting.Title),
+            () => stored.DepartmentId.ShouldBe(DepartmentId),
             () => stored.Department.ShouldBe(posting.Department),
             () => stored.Description.ShouldBe(posting.Description),
             () => stored.Location.ShouldBe(posting.Location),
@@ -247,6 +249,7 @@ public sealed class JobPostingRepositoryTests : IDisposable
         JobPosting.Create(
             createdByUserId: ownerId,
             title: "Park Ranger",
+            departmentId: DepartmentId,
             department: "Parks & Recreation",
             description: "Patrol city parks and assist visitors.",
             location: "Central Park District",

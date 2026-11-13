@@ -145,7 +145,6 @@ public class JobPostingLifecycleTests
 
         posting.Update(
             title: "Senior Park Ranger",
-            department: "Parks",
             description: "Lead the ranger team.",
             location: "North District",
             employmentType: EmploymentType.Temporary,
@@ -156,7 +155,7 @@ public class JobPostingLifecycleTests
 
         posting.ShouldSatisfyAllConditions(
             () => posting.Title.ShouldBe("Senior Park Ranger"),
-            () => posting.Department.ShouldBe("Parks"),
+            () => posting.Department.ShouldBe("Parks & Recreation"),
             () => posting.Description.ShouldBe("Lead the ranger team."),
             () => posting.Location.ShouldBe("North District"),
             () => posting.EmploymentType.ShouldBe(EmploymentType.Temporary),
@@ -252,7 +251,6 @@ public class JobPostingLifecycleTests
     [Trait("Rule", "BR-03")]
     [InlineData("title", null)]
     [InlineData("title", "   ")]
-    [InlineData("department", "")]
     [InlineData("description", "")]
     [InlineData("location", "")]
     public void Update_WhenRequiredFieldIsMissing_ThrowsDomainValidationException(string field, string? value)
@@ -262,7 +260,6 @@ public class JobPostingLifecycleTests
         var update = () => Update(
             posting,
             title: field == "title" ? value! : "Park Ranger",
-            department: field == "department" ? value! : "Parks & Recreation",
             description: field == "description" ? value! : "Patrol city parks.",
             location: field == "location" ? value! : "Central Park District");
 
@@ -299,6 +296,7 @@ public class JobPostingLifecycleTests
         JobPosting.Create(
             createdByUserId: Guid.NewGuid(),
             title: "Park Ranger",
+            departmentId: Guid.NewGuid(),
             department: "Parks & Recreation",
             description: "Patrol city parks and assist visitors.",
             location: "Central Park District",
@@ -328,7 +326,6 @@ public class JobPostingLifecycleTests
     private static void Update(
         JobPosting posting,
         string title = "Park Ranger",
-        string department = "Parks & Recreation",
         string description = "Patrol city parks.",
         string location = "Central Park District",
         EmploymentType employmentType = EmploymentType.FullTime,
@@ -337,7 +334,6 @@ public class JobPostingLifecycleTests
         DateOnly? closingDate = null) =>
         posting.Update(
             title,
-            department,
             description,
             location,
             employmentType,

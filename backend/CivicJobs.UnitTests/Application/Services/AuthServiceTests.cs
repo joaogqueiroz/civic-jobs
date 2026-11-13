@@ -5,6 +5,7 @@ using CivicJobs.Application.Services.Implementations;
 using CivicJobs.Application.Validators;
 using CivicJobs.Application.ViewModels;
 using CivicJobs.Core.Entities;
+using CivicJobs.Core.Enums;
 using CivicJobs.Core.Repositories;
 using FluentValidation;
 using Microsoft.Extensions.Time.Testing;
@@ -48,6 +49,19 @@ public class AuthServiceTests
             () => result.Email.ShouldBe(Email),
             () => result.FullName.ShouldBe("Jane Doe"),
             () => result.CreatedAt.ShouldBe(Now));
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-01")]
+    [Trait("Rule", "BR-13")]
+    public async Task RegisterAsync_WithValidInput_CreatesCandidateWithoutAgencyOrDepartment()
+    {
+        var result = await CreateService().RegisterAsync(RegisterInput(), CancellationToken.None);
+
+        result.ShouldSatisfyAllConditions(
+            () => result.Role.ShouldBe(UserRole.Candidate),
+            () => result.AgencyId.ShouldBeNull(),
+            () => result.DepartmentId.ShouldBeNull());
     }
 
     [Fact]
@@ -187,7 +201,7 @@ public class AuthServiceTests
 
     private User StoredUser()
     {
-        var user = User.Create(Email, "Jane Doe", PasswordHash, Now);
+        var user = User.CreateCandidate(Email, "Jane Doe", PasswordHash, Now);
         _users.GetByEmailAsync(Email, Arg.Any<CancellationToken>()).Returns(user);
         return user;
     }

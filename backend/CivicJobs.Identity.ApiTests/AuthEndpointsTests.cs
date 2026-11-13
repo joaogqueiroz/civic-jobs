@@ -26,6 +26,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         body.GetProperty("email").GetString().ShouldBe(email);
+        body.GetProperty("role").GetString().ShouldBe("Candidate");
         body.TryGetProperty("passwordHash", out _).ShouldBeFalse();
     }
 

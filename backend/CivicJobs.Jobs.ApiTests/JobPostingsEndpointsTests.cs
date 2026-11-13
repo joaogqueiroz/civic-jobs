@@ -27,6 +27,33 @@ public sealed class JobPostingsEndpointsTests(JobsApiFactory factory) : IClassFi
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
     }
 
+    [Theory]
+    [Trait("Rule", "BR-12")]
+    [InlineData(UserRole.Candidate)]
+    [InlineData(UserRole.HiringManager)]
+    [InlineData(UserRole.Admin)]
+    public async Task ListPostings_WithRoleOtherThanRecruiter_Returns403(UserRole role)
+    {
+        var client = await factory.CreateClientForAsync(role);
+
+        var response = await client.GetAsync("/api/job-postings");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-04")]
+    [Trait("Rule", "BR-13")]
+    public async Task CreatePosting_AsRecruiter_TakesDepartmentFromTheAccount()
+    {
+        var department = await factory.CreateDepartmentAsync("Animal Services");
+        var client = await factory.CreateClientForAsync(UserRole.Recruiter, department);
+
+        var posting = await CreatePostingAsync(client);
+
+        posting.Department.ShouldBe("Animal Services");
+    }
+
     [Fact]
     [Trait("Rule", "BR-08")]
     public async Task GetPosting_OwnedByAnotherRecruiter_Returns404()
@@ -110,7 +137,6 @@ public sealed class JobPostingsEndpointsTests(JobsApiFactory factory) : IClassFi
     private static object NewPosting(decimal salaryMin = 50_000, decimal salaryMax = 60_000) => new
     {
         title = "Park Ranger",
-        department = "Parks & Recreation",
         description = "Patrol city parks and assist visitors.",
         location = "Central Park District",
         employmentType = "FullTime",

@@ -1,5 +1,6 @@
 using System.Text;
 using CivicJobs.Core.Entities;
+using CivicJobs.Core.Enums;
 using CivicJobs.Infrastructure.Auth;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
@@ -21,7 +22,7 @@ public class JwtTokenServiceTests
         ExpiryMinutes = 60
     };
 
-    private readonly User _user = User.Create("recruiter@cityofexample.gov", "Jane Doe", "hashed-password", Now);
+    private readonly User _user = User.CreateCandidate("recruiter@cityofexample.gov", "Jane Doe", "hashed-password", Now);
     private readonly JwtTokenService _service = new(Microsoft.Extensions.Options.Options.Create(Options), new FakeTimeProvider(Now));
 
     [Fact]
@@ -34,6 +35,18 @@ public class JwtTokenServiceTests
             () => token.Subject.ShouldBe(_user.Id.ToString()),
             () => token.GetClaim(JwtRegisteredClaimNames.Email).Value.ShouldBe(_user.Email),
             () => token.GetClaim(JwtRegisteredClaimNames.Name).Value.ShouldBe(_user.FullName));
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-12")]
+    public void CreateToken_ContainsRoleClaim()
+    {
+        var manager = User.CreateStaff("manager@cityofexample.gov", "Sam Patel", "hashed-password",
+            UserRole.HiringManager, Guid.NewGuid(), Guid.NewGuid(), Now);
+
+        var token = Read(_service.CreateToken(manager).AccessToken);
+
+        token.GetClaim("role").Value.ShouldBe("HiringManager");
     }
 
     [Fact]

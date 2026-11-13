@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using CivicJobs.Application.Abstractions;
 using CivicJobs.Core.Entities;
+using CivicJobs.Core.Enums;
 using CivicJobs.Core.Repositories;
 using CivicJobs.Infrastructure.Persistence;
 using CivicJobs.Jobs.Api.BackgroundServices;
@@ -23,17 +24,44 @@ public sealed class JobsApiFactory : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection _connection = new("DataSource=:memory:");
 
-    /// <summary>Creates a recruiter in the database and returns a client that sends that recruiter's token.</summary>
-    public async Task<HttpClient> CreateClientForNewRecruiterAsync()
-    {
-        using var scope = Services.CreateScope();
-        var provider = scope.ServiceProvider;
+    /// <summary>Creates a recruiter in a new department and returns a client that sends that recruiter's token.</summary>
+    public Task<HttpClient> CreateClientForNewRecruiterAsync() => CreateClientForAsync(UserRole.Recruiter);
 
-        var user = User.Create(
-            $"recruiter-{Guid.NewGuid():N}@cityofexample.gov",
-            "Test Recruiter",
-            "not-used-by-these-tests",
-            provider.GetRequiredService<TimeProvider>().GetUtcNow());
+    /// <summary>Creates an agency with one department, straight in the database.</summary>
+    public async Task<Department> CreateDepartmentAsync(string name = "Parks & Recreation")
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<CivicJobsDbContext>();
+        var now = scope.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow();
+
+        var agency = Agency.Create($"Agency {Guid.NewGuid():N}", now);
+        var department = Department.Create(agency.Id, name, now);
+        context.AddRange(agency, department);
+        await context.SaveChangesAsync();
+
+        return department;
+    }
+
+    /// <summary>
+    /// Creates a user with the given role and returns a client that sends that user's token. Staff go into
+    /// <paramref name="department"/> (or its agency, for an admin); a new department is created when none is given.
+    /// </summary>
+    public async Task<HttpClient> CreateClientForAsync(UserRole role, Department? department = null)
+    {
+        if (role != UserRole.Candidate)
+        {
+            department ??= await CreateDepartmentAsync();
+        }
+
+        await using var scope = Services.CreateAsyncScope();
+        var provider = scope.ServiceProvider;
+        var now = provider.GetRequiredService<TimeProvider>().GetUtcNow();
+        var email = $"{role.ToString().ToLowerInvariant()}-{Guid.NewGuid():N}@cityofexample.gov";
+
+        var user = role == UserRole.Candidate
+            ? User.CreateCandidate(email, "Test Candidate", "not-used-by-these-tests", now)
+            : User.CreateStaff(email, $"Test {role}", "not-used-by-these-tests", role, department!.AgencyId,
+                role == UserRole.Admin ? null : department.Id, now);
         await provider.GetRequiredService<IUserRepository>().AddAsync(user, CancellationToken.None);
         var token = provider.GetRequiredService<ITokenService>().CreateToken(user);
 

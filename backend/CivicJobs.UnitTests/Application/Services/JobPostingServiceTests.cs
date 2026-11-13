@@ -21,6 +21,17 @@ public class JobPostingServiceTests
     private readonly Guid _userId = Guid.NewGuid();
     private readonly FakeTimeProvider _timeProvider = new(Now);
     private readonly IJobPostingRepository _repository = Substitute.For<IJobPostingRepository>();
+    private readonly IUserRepository _users = Substitute.For<IUserRepository>();
+    private readonly IDepartmentRepository _departments = Substitute.For<IDepartmentRepository>();
+    private readonly Department _department = Department.Create(Guid.NewGuid(), "Parks & Recreation", Now);
+
+    public JobPostingServiceTests()
+    {
+        // Any caller is a recruiter of _department unless a test says otherwise.
+        _users.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Recruiter(_department.Id));
+        _departments.GetByIdAsync(_department.Id, Arg.Any<CancellationToken>()).Returns(_department);
+    }
 
     #region Create
 
@@ -35,7 +46,7 @@ public class JobPostingServiceTests
         result.ShouldSatisfyAllConditions(
             () => result.Id.ShouldNotBe(Guid.Empty),
             () => result.Title.ShouldBe(input.Title),
-            () => result.Department.ShouldBe(input.Department),
+            () => result.Department.ShouldBe(_department.Name),
             () => result.Description.ShouldBe(input.Description),
             () => result.Location.ShouldBe(input.Location),
             () => result.EmploymentType.ShouldBe(input.EmploymentType),
@@ -78,6 +89,35 @@ public class JobPostingServiceTests
         saved.ShouldSatisfyAllConditions(
             () => saved.Id.ShouldBe(result.Id),
             () => saved.CreatedByUserId.ShouldBe(userId));
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-04")]
+    [Trait("Rule", "BR-13")]
+    public async Task CreateAsync_WithValidInput_SetsDepartmentFromRecruiterAccount()
+    {
+        JobPosting? saved = null;
+        _repository
+            .When(r => r.AddAsync(Arg.Any<JobPosting>(), Arg.Any<CancellationToken>()))
+            .Do(call => saved = call.Arg<JobPosting>());
+
+        await CreateService().CreateAsync(_userId, ValidInput(), CancellationToken.None);
+
+        saved.ShouldNotBeNull();
+        saved.DepartmentId.ShouldBe(_department.Id);
+        saved.Department.ShouldBe("Parks & Recreation");
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-04")]
+    public async Task CreateAsync_WhenUserNoLongerExists_ThrowsUnauthorizedException()
+    {
+        _users.GetByIdAsync(_userId, Arg.Any<CancellationToken>()).Returns((User?)null);
+
+        var create = () => CreateService().CreateAsync(_userId, ValidInput(), CancellationToken.None);
+
+        await create.ShouldThrowAsync<UnauthorizedException>();
+        await ShouldNotHaveSavedAnythingAsync();
     }
 
     #endregion
@@ -434,14 +474,21 @@ public class JobPostingServiceTests
             new CreateJobPostingInputModelValidator(_timeProvider),
             new UpdateJobPostingInputModelValidator(_timeProvider),
             _repository,
+            _users,
+            _departments,
             _timeProvider);
+
+    private static User Recruiter(Guid departmentId) =>
+        User.CreateStaff("recruiter@cityofexample.gov", "Jane Doe", "hashed-password",
+            UserRole.Recruiter, Guid.NewGuid(), departmentId, Now);
 
     private JobPosting StoredPosting(Guid ownerId, DateOnly? closingDate = null)
     {
         var posting = JobPosting.Create(
             createdByUserId: ownerId,
             title: "Park Ranger",
-            department: "Parks & Recreation",
+            departmentId: _department.Id,
+            department: _department.Name,
             description: "Patrol city parks and assist visitors.",
             location: "Central Park District",
             employmentType: EmploymentType.FullTime,
@@ -458,7 +505,6 @@ public class JobPostingServiceTests
     private static CreateJobPostingInputModel ValidInput() => new()
     {
         Title = "Park Ranger",
-        Department = "Parks & Recreation",
         Description = "Patrol city parks and assist visitors.",
         Location = "Central Park District",
         EmploymentType = EmploymentType.PartTime,
@@ -470,7 +516,6 @@ public class JobPostingServiceTests
     private static UpdateJobPostingInputModel ValidUpdateInput() => new()
     {
         Title = "Senior Park Ranger",
-        Department = "Parks & Recreation",
         Description = "Lead the ranger team.",
         Location = "Central Park District",
         EmploymentType = EmploymentType.FullTime,

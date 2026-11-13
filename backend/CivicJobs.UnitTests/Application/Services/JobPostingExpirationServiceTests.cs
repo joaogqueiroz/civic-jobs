@@ -76,6 +76,7 @@ public class JobPostingExpirationServiceTests
         var posting = JobPosting.Create(
             createdByUserId: Guid.NewGuid(),
             title: "Park Ranger",
+            departmentId: Guid.NewGuid(),
             department: "Parks & Recreation",
             description: "Patrol city parks and assist visitors.",
             location: "Central Park District",

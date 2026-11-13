@@ -33,7 +33,6 @@ public sealed class PublicJobPostingsEndpointsTests(JobsApiFactory factory) : IC
         var response = await client.PostAsJsonAsync("/api/job-postings", new
         {
             title,
-            department = "Parks & Recreation",
             description = "Patrol city parks and assist visitors.",
             location = "Central Park District",
             employmentType = "FullTime",
