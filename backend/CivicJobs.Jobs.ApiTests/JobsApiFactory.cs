@@ -3,6 +3,7 @@ using CivicJobs.Application.Abstractions;
 using CivicJobs.Core.Entities;
 using CivicJobs.Core.Repositories;
 using CivicJobs.Infrastructure.Persistence;
+using CivicJobs.Jobs.Api.BackgroundServices;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
@@ -53,6 +54,9 @@ public sealed class JobsApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<DbContextOptions<CivicJobsDbContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<CivicJobsDbContext>>();
             services.AddDbContext<CivicJobsDbContext>(options => options.UseSqlite(_connection));
+
+            // The worker would query the database before CreateHost applies the migrations; BR-11 is covered by unit tests.
+            services.Remove(services.Single(d => d.ImplementationType == typeof(JobPostingExpirationWorker)));
         });
     }
 

@@ -39,6 +39,11 @@ public sealed class JobPostingRepository(CivicJobsDbContext context) : IJobPosti
             .ThenBy(p => p.Id)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<JobPosting>> ListExpiredOpenAsync(DateOnly today, CancellationToken cancellationToken) =>
+        await context.JobPostings
+            .Where(p => p.Status == JobPostingStatus.Open && p.ClosingDate < today)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(JobPosting posting, CancellationToken cancellationToken)
     {
         context.JobPostings.Add(posting);

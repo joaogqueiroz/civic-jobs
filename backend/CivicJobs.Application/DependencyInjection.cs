@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddSingleton<IValidator<LoginInputModel>, LoginInputModelValidator>();
 
         services.AddScoped<IJobPostingService, JobPostingService>();
+        services.AddScoped<IJobPostingExpirationService, JobPostingExpirationService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
 
