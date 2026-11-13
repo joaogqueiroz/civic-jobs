@@ -11,15 +11,83 @@ public class JobPostingLifecycleTests
     private static readonly DateOnly Today = DateOnly.FromDateTime(Now.UtcDateTime);
     private static readonly DateTimeOffset Later = Now.AddHours(1);
 
-    #region Publish
+    #region Submit for approval
 
     [Fact]
     [Trait("Requirement", "FR-08")]
-    public void Publish_WhenDraft_SetsStatusToOpenAndUpdatedAt()
+    public void SubmitForApproval_WhenDraft_SetsStatusToPendingApprovalAndUpdatedAt()
     {
         var posting = DraftPosting();
 
-        posting.Publish(Later);
+        posting.SubmitForApproval(Later);
+
+        posting.ShouldSatisfyAllConditions(
+            () => posting.Status.ShouldBe(JobPostingStatus.PendingApproval),
+            () => posting.UpdatedAt.ShouldBe(Later));
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-05")]
+    public void SubmitForApproval_WhenClosingDateIsTomorrow_SetsStatusToPendingApproval()
+    {
+        var posting = DraftPosting(closingDate: Today.AddDays(1));
+
+        posting.SubmitForApproval(Now);
+
+        posting.Status.ShouldBe(JobPostingStatus.PendingApproval);
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-05")]
+    public void SubmitForApproval_WhenClosingDateIsToday_ThrowsInvalidStatusTransitionException()
+    {
+        var posting = DraftPosting(closingDate: Today);
+
+        var submit = () => posting.SubmitForApproval(Now);
+
+        submit.ShouldThrow<InvalidStatusTransitionException>()
+            .Message.ShouldBe("Choose a closing date after today. Open postings must close in the future.");
+        posting.Status.ShouldBe(JobPostingStatus.Draft);
+    }
+
+    [Theory]
+    [Trait("Rule", "BR-06")]
+    [InlineData(JobPostingStatus.PendingApproval, "This posting is already waiting for approval.")]
+    [InlineData(JobPostingStatus.Open, "This posting is already published.")]
+    [InlineData(JobPostingStatus.Closed, "This posting is closed and can't be published again.")]
+    public void SubmitForApproval_WhenNotDraft_ThrowsInvalidStatusTransitionException(JobPostingStatus status, string message)
+    {
+        var posting = PostingWithStatus(status);
+
+        var submit = () => posting.SubmitForApproval(Later);
+
+        submit.ShouldThrow<InvalidStatusTransitionException>().Message.ShouldBe(message);
+        posting.Status.ShouldBe(status);
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-17")]
+    public void SubmitForApproval_AfterRejection_ClearsTheRejectionReason()
+    {
+        var posting = PostingWithStatus(JobPostingStatus.PendingApproval);
+        posting.Reject("Add the shift hours.", Later);
+
+        posting.SubmitForApproval(Later);
+
+        posting.RejectionReason.ShouldBeNull();
+    }
+
+    #endregion
+
+    #region Approve
+
+    [Fact]
+    [Trait("Requirement", "FR-16")]
+    public void Approve_WhenPendingApproval_SetsStatusToOpenAndUpdatedAt()
+    {
+        var posting = PostingWithStatus(JobPostingStatus.PendingApproval);
+
+        posting.Approve(Later);
 
         posting.ShouldSatisfyAllConditions(
             () => posting.Status.ShouldBe(JobPostingStatus.Open),
@@ -28,51 +96,87 @@ public class JobPostingLifecycleTests
 
     [Fact]
     [Trait("Rule", "BR-05")]
-    public void Publish_WhenClosingDateIsTomorrow_SetsStatusToOpen()
+    public void Approve_WhenClosingDateIsNoLongerAfterToday_ThrowsInvalidStatusTransitionException()
     {
         var posting = DraftPosting(closingDate: Today.AddDays(1));
+        posting.SubmitForApproval(Now);
 
-        posting.Publish(Now);
+        var approve = () => posting.Approve(Now.AddDays(1));
 
-        posting.Status.ShouldBe(JobPostingStatus.Open);
-    }
-
-    [Fact]
-    [Trait("Rule", "BR-05")]
-    public void Publish_WhenClosingDateIsToday_ThrowsInvalidStatusTransitionException()
-    {
-        var posting = DraftPosting(closingDate: Today);
-
-        var publish = () => posting.Publish(Now);
-
-        publish.ShouldThrow<InvalidStatusTransitionException>()
-            .Message.ShouldBe("Choose a closing date after today. Open postings must close in the future.");
-        posting.Status.ShouldBe(JobPostingStatus.Draft);
-    }
-
-    [Fact]
-    [Trait("Rule", "BR-05")]
-    public void Publish_WhenClosingDateIsInThePast_ThrowsInvalidStatusTransitionException()
-    {
-        var posting = DraftPosting(closingDate: Today);
-
-        var publish = () => posting.Publish(Now.AddDays(2));
-
-        publish.ShouldThrow<InvalidStatusTransitionException>();
+        approve.ShouldThrow<InvalidStatusTransitionException>();
+        posting.Status.ShouldBe(JobPostingStatus.PendingApproval);
     }
 
     [Theory]
     [Trait("Rule", "BR-06")]
-    [InlineData(JobPostingStatus.Open, "This posting is already published.")]
-    [InlineData(JobPostingStatus.Closed, "This posting is closed and can't be published again.")]
-    public void Publish_WhenNotDraft_ThrowsInvalidStatusTransitionException(JobPostingStatus status, string message)
+    [InlineData(JobPostingStatus.Draft)]
+    [InlineData(JobPostingStatus.Open)]
+    [InlineData(JobPostingStatus.Closed)]
+    public void Approve_WhenNotPendingApproval_ThrowsInvalidStatusTransitionException(JobPostingStatus status)
     {
         var posting = PostingWithStatus(status);
 
-        var publish = () => posting.Publish(Later);
+        var approve = () => posting.Approve(Later);
 
-        publish.ShouldThrow<InvalidStatusTransitionException>().Message.ShouldBe(message);
+        approve.ShouldThrow<InvalidStatusTransitionException>()
+            .Message.ShouldBe("Only postings waiting for approval can be approved or rejected.");
         posting.Status.ShouldBe(status);
+    }
+
+    #endregion
+
+    #region Reject
+
+    [Fact]
+    [Trait("Requirement", "FR-17")]
+    public void Reject_WhenPendingApproval_ReturnsToDraftWithTrimmedReason()
+    {
+        var posting = PostingWithStatus(JobPostingStatus.PendingApproval);
+
+        posting.Reject("  Add the shift hours.  ", Later);
+
+        posting.ShouldSatisfyAllConditions(
+            () => posting.Status.ShouldBe(JobPostingStatus.Draft),
+            () => posting.RejectionReason.ShouldBe("Add the shift hours."),
+            () => posting.UpdatedAt.ShouldBe(Later));
+    }
+
+    [Theory]
+    [Trait("Rule", "BR-17")]
+    [InlineData(null)]
+    [InlineData("   ")]
+    public void Reject_WithoutReason_ThrowsDomainValidationException(string? reason)
+    {
+        var posting = PostingWithStatus(JobPostingStatus.PendingApproval);
+
+        var reject = () => posting.Reject(reason!, Later);
+
+        reject.ShouldThrow<DomainValidationException>();
+        posting.Status.ShouldBe(JobPostingStatus.PendingApproval);
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-17")]
+    public void Reject_WithReasonLongerThan500Chars_ThrowsDomainValidationException()
+    {
+        var posting = PostingWithStatus(JobPostingStatus.PendingApproval);
+
+        var reject = () => posting.Reject(new string('a', 501), Later);
+
+        reject.ShouldThrow<DomainValidationException>();
+    }
+
+    [Theory]
+    [Trait("Rule", "BR-06")]
+    [InlineData(JobPostingStatus.Draft)]
+    [InlineData(JobPostingStatus.Open)]
+    public void Reject_WhenNotPendingApproval_ThrowsInvalidStatusTransitionException(JobPostingStatus status)
+    {
+        var posting = PostingWithStatus(status);
+
+        var reject = () => posting.Reject("Add the shift hours.", Later);
+
+        reject.ShouldThrow<InvalidStatusTransitionException>();
     }
 
     #endregion
@@ -95,7 +199,8 @@ public class JobPostingLifecycleTests
 
     [Theory]
     [Trait("Rule", "BR-06")]
-    [InlineData(JobPostingStatus.Draft, "Publish this draft before closing it.")]
+    [InlineData(JobPostingStatus.Draft, "Only open postings can be closed.")]
+    [InlineData(JobPostingStatus.PendingApproval, "Only open postings can be closed.")]
     [InlineData(JobPostingStatus.Closed, "This posting is already closed.")]
     public void Close_WhenNotOpen_ThrowsInvalidStatusTransitionException(JobPostingStatus status, string message)
     {
@@ -122,6 +227,7 @@ public class JobPostingLifecycleTests
 
     [Theory]
     [Trait("Rule", "BR-07")]
+    [InlineData(JobPostingStatus.PendingApproval)]
     [InlineData(JobPostingStatus.Open)]
     [InlineData(JobPostingStatus.Closed)]
     public void EnsureCanBeDeleted_WhenNotDraft_ThrowsInvalidStatusTransitionException(JobPostingStatus status)
@@ -200,6 +306,16 @@ public class JobPostingLifecycleTests
 
         Should.Throw<InvalidStatusTransitionException>(posting.EnsureCanBeEdited)
             .Message.ShouldBe("This posting is closed, so it can't be edited.");
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-06")]
+    public void EnsureCanBeEdited_WhenPendingApproval_ThrowsInvalidStatusTransitionException()
+    {
+        var posting = PostingWithStatus(JobPostingStatus.PendingApproval);
+
+        Should.Throw<InvalidStatusTransitionException>(posting.EnsureCanBeEdited)
+            .Message.ShouldBe("This posting is waiting for approval, so it can't be edited.");
     }
 
     [Fact]
@@ -310,9 +426,14 @@ public class JobPostingLifecycleTests
     {
         var posting = DraftPosting();
 
+        if (status is JobPostingStatus.PendingApproval or JobPostingStatus.Open or JobPostingStatus.Closed)
+        {
+            posting.SubmitForApproval(Now);
+        }
+
         if (status is JobPostingStatus.Open or JobPostingStatus.Closed)
         {
-            posting.Publish(Now);
+            posting.Approve(Now);
         }
 
         if (status is JobPostingStatus.Closed)

@@ -81,7 +81,7 @@ public sealed class DbInitializerTests : IDisposable
     }
 
     [Fact]
-    public async Task InitializeAsync_OnEmptyDatabase_SeedsFirstRecruiterWithTwoDraftTwoOpenAndOneClosedPosting()
+    public async Task InitializeAsync_OnEmptyDatabase_SeedsFirstRecruiterWithTwoDraftOnePendingTwoOpenAndOneClosedPosting()
     {
         await InitializeAsync();
 
@@ -91,6 +91,7 @@ public sealed class DbInitializerTests : IDisposable
 
         postings.ShouldSatisfyAllConditions(
             () => postings.Count(p => p.Status == JobPostingStatus.Draft).ShouldBe(2),
+            () => postings.Count(p => p.Status == JobPostingStatus.PendingApproval).ShouldBe(1),
             () => postings.Count(p => p.Status == JobPostingStatus.Open).ShouldBe(2),
             () => postings.Count(p => p.Status == JobPostingStatus.Closed).ShouldBe(1),
             () => postings.ShouldAllBe(p => p.Department == "Parks & Recreation" && p.DepartmentId == owner.DepartmentId));
@@ -118,7 +119,7 @@ public sealed class DbInitializerTests : IDisposable
 
         await using var context = CreateContext();
         (await context.Users.CountAsync()).ShouldBe(6);
-        (await context.JobPostings.CountAsync()).ShouldBe(7);
+        (await context.JobPostings.CountAsync()).ShouldBe(8);
     }
 
     [Fact]
@@ -141,7 +142,7 @@ public sealed class DbInitializerTests : IDisposable
             await using var check = new CivicJobsDbContext(
                 new DbContextOptionsBuilder<CivicJobsDbContext>().UseSqlite(connectionString).Options);
             (await check.Users.CountAsync()).ShouldBe(6);
-            (await check.JobPostings.CountAsync()).ShouldBe(7);
+            (await check.JobPostings.CountAsync()).ShouldBe(8);
         }
         finally
         {

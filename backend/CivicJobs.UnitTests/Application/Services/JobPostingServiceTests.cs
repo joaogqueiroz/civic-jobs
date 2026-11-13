@@ -171,7 +171,8 @@ public class JobPostingServiceTests
     public async Task ListAsync_WithStatus_PassesOwnerAndStatusToRepositoryAndMapsResult()
     {
         var open = StoredPosting(_userId);
-        open.Publish(Now);
+        open.SubmitForApproval(Now);
+        open.Approve(Now);
         _repository
             .ListByOwnerAsync(_userId, JobPostingStatus.Open, Arg.Any<CancellationToken>())
             .Returns([open]);
@@ -268,7 +269,8 @@ public class JobPostingServiceTests
     public async Task UpdateAsync_WhenClosedAndInputIsInvalid_ThrowsInvalidStatusTransitionException()
     {
         var posting = StoredPosting(_userId);
-        posting.Publish(Now);
+        posting.SubmitForApproval(Now);
+        posting.Approve(Now);
         posting.Close(Now);
         var input = ValidUpdateInput();
         input.Title = "";
@@ -285,7 +287,8 @@ public class JobPostingServiceTests
     public async Task UpdateAsync_WhenClosed_ThrowsInvalidStatusTransitionException()
     {
         var posting = StoredPosting(_userId);
-        posting.Publish(Now);
+        posting.SubmitForApproval(Now);
+        posting.Approve(Now);
         posting.Close(Now);
 
         var update = () => CreateService().UpdateAsync(_userId, posting.Id, ValidUpdateInput(), CancellationToken.None);
@@ -320,7 +323,8 @@ public class JobPostingServiceTests
     public async Task DeleteAsync_WhenOpen_ThrowsInvalidStatusTransitionException()
     {
         var posting = StoredPosting(_userId);
-        posting.Publish(Now);
+        posting.SubmitForApproval(Now);
+        posting.Approve(Now);
 
         var delete = () => CreateService().DeleteAsync(_userId, posting.Id, CancellationToken.None);
 
@@ -344,11 +348,11 @@ public class JobPostingServiceTests
 
     #endregion
 
-    #region Publish
+    #region Submit for approval
 
     [Fact]
     [Trait("Requirement", "FR-08")]
-    public async Task PublishAsync_WhenDraftOwnedByCaller_ReturnsAndSavesOpenPosting()
+    public async Task SubmitAsync_WhenDraftOwnedByCaller_ReturnsAndSavesPendingPosting()
     {
         var posting = StoredPosting(_userId);
         JobPosting? saved = null;
@@ -356,35 +360,35 @@ public class JobPostingServiceTests
             .When(r => r.UpdateAsync(Arg.Any<JobPosting>(), Arg.Any<CancellationToken>()))
             .Do(call => saved = call.Arg<JobPosting>());
 
-        var result = await CreateService().PublishAsync(_userId, posting.Id, CancellationToken.None);
+        var result = await CreateService().SubmitAsync(_userId, posting.Id, CancellationToken.None);
 
-        result.Status.ShouldBe(JobPostingStatus.Open);
+        result.Status.ShouldBe(JobPostingStatus.PendingApproval);
         saved.ShouldNotBeNull();
-        saved.Status.ShouldBe(JobPostingStatus.Open);
+        saved.Status.ShouldBe(JobPostingStatus.PendingApproval);
     }
 
     [Fact]
     [Trait("Rule", "BR-05")]
-    public async Task PublishAsync_WhenClosingDateIsToday_ThrowsInvalidStatusTransitionException()
+    public async Task SubmitAsync_WhenClosingDateIsToday_ThrowsInvalidStatusTransitionException()
     {
         var posting = StoredPosting(_userId, closingDate: Today);
 
-        var publish = () => CreateService().PublishAsync(_userId, posting.Id, CancellationToken.None);
+        var submit = () => CreateService().SubmitAsync(_userId, posting.Id, CancellationToken.None);
 
-        await publish.ShouldThrowAsync<InvalidStatusTransitionException>();
+        await submit.ShouldThrowAsync<InvalidStatusTransitionException>();
 
         await ShouldNotHaveSavedAnythingAsync();
     }
 
     [Fact]
     [Trait("Rule", "BR-08")]
-    public async Task PublishAsync_WhenOwnedByAnotherUser_ThrowsNotFoundException()
+    public async Task SubmitAsync_WhenOwnedByAnotherUser_ThrowsNotFoundException()
     {
         var posting = StoredPosting(Guid.NewGuid());
 
-        var publish = () => CreateService().PublishAsync(_userId, posting.Id, CancellationToken.None);
+        var submit = () => CreateService().SubmitAsync(_userId, posting.Id, CancellationToken.None);
 
-        await publish.ShouldThrowAsync<NotFoundException>();
+        await submit.ShouldThrowAsync<NotFoundException>();
 
         await ShouldNotHaveSavedAnythingAsync();
     }
@@ -398,7 +402,8 @@ public class JobPostingServiceTests
     public async Task CloseAsync_WhenOpenOwnedByCaller_ReturnsAndSavesClosedPosting()
     {
         var posting = StoredPosting(_userId);
-        posting.Publish(Now);
+        posting.SubmitForApproval(Now);
+        posting.Approve(Now);
         JobPosting? saved = null;
         _repository
             .When(r => r.UpdateAsync(Arg.Any<JobPosting>(), Arg.Any<CancellationToken>()))
@@ -429,7 +434,8 @@ public class JobPostingServiceTests
     public async Task CloseAsync_WhenOwnedByAnotherUser_ThrowsNotFoundException()
     {
         var posting = StoredPosting(Guid.NewGuid());
-        posting.Publish(Now);
+        posting.SubmitForApproval(Now);
+        posting.Approve(Now);
 
         var close = () => CreateService().CloseAsync(_userId, posting.Id, CancellationToken.None);
 
@@ -449,7 +455,8 @@ public class JobPostingServiceTests
     public async Task ListPublicAsync_AsksForPostingsClosingTodayOrLaterAndMapsThem()
     {
         var open = StoredPosting(Guid.NewGuid());
-        open.Publish(Now);
+        open.SubmitForApproval(Now);
+        open.Approve(Now);
         _repository.ListOpenAsync(Today, Arg.Any<CancellationToken>()).Returns([open]);
 
         var result = await CreateService().ListPublicAsync(CancellationToken.None);

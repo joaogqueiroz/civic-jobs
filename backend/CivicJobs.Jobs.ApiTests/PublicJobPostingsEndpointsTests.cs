@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using CivicJobs.Core.Enums;
 using Shouldly;
 
 namespace CivicJobs.Jobs.ApiTests;
@@ -13,10 +14,13 @@ public sealed class PublicJobPostingsEndpointsTests(JobsApiFactory factory) : IC
     [Trait("Requirement", "FR-11")]
     public async Task ListPublicPostings_WithoutToken_ReturnsOpenPostingsButNotDrafts()
     {
-        var recruiter = await factory.CreateClientForNewRecruiterAsync();
+        var department = await factory.CreateDepartmentAsync();
+        var recruiter = await factory.CreateClientForAsync(UserRole.Recruiter, department);
+        var manager = await factory.CreateClientForAsync(UserRole.HiringManager, department);
         var draftId = await CreateAsync(recruiter, "Draft Lifeguard");
         var openId = await CreateAsync(recruiter, "Open Park Ranger");
-        (await recruiter.PostAsync($"/api/job-postings/{openId}/publish", null)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await recruiter.PostAsync($"/api/job-postings/{openId}/submit", null)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await manager.PostAsync($"/api/department/job-postings/{openId}/approve", null)).StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var response = await factory.CreateClient().GetAsync("/api/public/job-postings");
 

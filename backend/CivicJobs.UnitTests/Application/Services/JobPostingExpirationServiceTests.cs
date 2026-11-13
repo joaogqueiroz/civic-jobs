@@ -85,7 +85,8 @@ public class JobPostingExpirationServiceTests
             salaryMax: 60_000m,
             closingDate: Today.AddDays(-1),
             createdAt: createdAt);
-        posting.Publish(createdAt);
+        posting.SubmitForApproval(createdAt);
+        posting.Approve(createdAt);
         return posting;
     }
 }
