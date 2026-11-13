@@ -112,6 +112,26 @@ public sealed class DbInitializerTests : IDisposable
     }
 
     [Fact]
+    [Trait("Requirement", "FR-19")]
+    public async Task InitializeAsync_OnEmptyDatabase_SeedsTwoApplicationsOfTheCandidateToOpenPostings()
+    {
+        await InitializeAsync();
+
+        await using var context = CreateContext();
+        var candidate = await context.Users.SingleAsync(u => u.Email == "candidate@example.com");
+        var applications = await context.JobApplications.ToListAsync();
+        var titles = await context.JobPostings.ToDictionaryAsync(p => p.Id, p => (p.Title, p.Status));
+
+        applications.ShouldAllBe(a => a.CandidateId == candidate.Id);
+        applications.Select(a => (titles[a.JobPostingId].Title, a.Status)).ShouldBe(
+        [
+            ("Recreation Program Coordinator", JobApplicationStatus.Submitted),
+            ("Groundskeeper", JobApplicationStatus.UnderReview)
+        ], ignoreOrder: true);
+        applications.ShouldAllBe(a => titles[a.JobPostingId].Status == JobPostingStatus.Open);
+    }
+
+    [Fact]
     public async Task InitializeAsync_WhenRunTwice_DoesNotDuplicateSeedData()
     {
         await InitializeAsync();
