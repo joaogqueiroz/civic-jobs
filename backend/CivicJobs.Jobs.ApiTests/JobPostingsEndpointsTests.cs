@@ -223,6 +223,54 @@ public sealed class JobPostingsEndpointsTests(JobsApiFactory factory) : IClassFi
             .ShouldBe("This posting is closed and can't be published again.");
     }
 
+    [Fact]
+    [Trait("Requirement", "FR-15")]
+    public async Task ListDepartmentPostings_AsHiringManager_ReturnsPostingsAwaitingApprovalButNotDrafts()
+    {
+        var department = await factory.CreateDepartmentAsync();
+        var recruiter = await factory.CreateClientForAsync(UserRole.Recruiter, department);
+        var manager = await factory.CreateClientForAsync(UserRole.HiringManager, department);
+        await CreatePostingAsync(recruiter);
+        var submitted = await CreatePostingAsync(recruiter);
+        await recruiter.PostAsync($"/api/job-postings/{submitted.Id}/submit", null);
+
+        var postings = await manager.GetFromJsonAsync<List<JobPostingViewModel>>("/api/department/job-postings", Json);
+
+        postings!.ShouldHaveSingleItem().Id.ShouldBe(submitted.Id);
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-15")]
+    public async Task ListDepartmentPostings_FilteredByStatus_ReturnsOnlyPostingsInThatStatus()
+    {
+        var department = await factory.CreateDepartmentAsync();
+        var recruiter = await factory.CreateClientForAsync(UserRole.Recruiter, department);
+        var manager = await factory.CreateClientForAsync(UserRole.HiringManager, department);
+        var pending = await CreatePostingAsync(recruiter);
+        await recruiter.PostAsync($"/api/job-postings/{pending.Id}/submit", null);
+        var open = await CreatePostingAsync(recruiter);
+        await recruiter.PostAsync($"/api/job-postings/{open.Id}/submit", null);
+        await manager.PostAsync($"/api/department/job-postings/{open.Id}/approve", null);
+
+        var postings = await manager.GetFromJsonAsync<List<JobPostingViewModel>>("/api/department/job-postings?status=Open", Json);
+
+        postings!.ShouldHaveSingleItem().Id.ShouldBe(open.Id);
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-16")]
+    public async Task ListDepartmentPostings_AsManagerOfAnotherDepartment_ReturnsNone()
+    {
+        var recruiter = await factory.CreateClientForAsync(UserRole.Recruiter);
+        var otherManager = await factory.CreateClientForAsync(UserRole.HiringManager);
+        var posting = await CreatePostingAsync(recruiter);
+        await recruiter.PostAsync($"/api/job-postings/{posting.Id}/submit", null);
+
+        var postings = await otherManager.GetFromJsonAsync<List<JobPostingViewModel>>("/api/department/job-postings", Json);
+
+        postings!.ShouldBeEmpty();
+    }
+
     private static async Task<JobPostingViewModel> CreatePostingAsync(HttpClient client)
     {
         var response = await client.PostAsJsonAsync("/api/job-postings", NewPosting());

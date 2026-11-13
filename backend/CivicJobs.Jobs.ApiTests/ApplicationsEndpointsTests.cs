@@ -62,6 +62,20 @@ public sealed class ApplicationsEndpointsTests(JobsApiFactory factory) : IClassF
     }
 
     [Fact]
+    [Trait("Rule", "BR-20")]
+    public async Task Apply_WithCoverLetterOverTheLimit_Returns400WithCoverLetterError()
+    {
+        var (_, _, postingId) = await OpenPostingAsync();
+        var candidate = await factory.CreateClientForAsync(UserRole.Candidate);
+
+        var response = await candidate.PostAsJsonAsync("/api/applications",
+            new { jobPostingId = postingId, coverLetter = new string('a', 2001) });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("errors").TryGetProperty("coverLetter", out _).ShouldBeTrue();
+    }
+
+    [Fact]
     [Trait("Rule", "BR-12")]
     public async Task Apply_AsRecruiter_Returns403()
     {
@@ -111,6 +125,21 @@ public sealed class ApplicationsEndpointsTests(JobsApiFactory factory) : IClassF
         var response = await otherManager.PutAsJsonAsync($"/api/department/applications/{application.Id}/status", new { status = "Rejected" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-19")]
+    public async Task ChangeApplicationStatus_FromSubmittedStraightToHired_Returns409()
+    {
+        var (_, manager, postingId) = await OpenPostingAsync();
+        var candidate = await factory.CreateClientForAsync(UserRole.Candidate);
+        await candidate.PostAsJsonAsync("/api/applications", new { jobPostingId = postingId });
+        var application = (await manager.GetFromJsonAsync<List<PostingApplicationViewModel>>(
+            $"/api/department/job-postings/{postingId}/applications", Json))!.Single();
+
+        var response = await manager.PutAsJsonAsync($"/api/department/applications/{application.Id}/status", new { status = "Hired" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
 
     /// <summary>A recruiter and a hiring manager of a new department, and an Open posting of theirs.</summary>
