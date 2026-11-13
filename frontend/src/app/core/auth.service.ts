@@ -55,7 +55,11 @@ export class AuthService {
 
     return this.loadCurrentUser().pipe(
       map(() => undefined),
-      catchError(() => of(undefined)),
+      catchError(() => {
+        // The API no longer accepts the session (deleted user, new key): forget it, so reloads don't ask again.
+        this.writeSessionExpiry(null);
+        return of(undefined);
+      }),
     );
   }
 

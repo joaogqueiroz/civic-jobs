@@ -92,7 +92,14 @@ export class AdminPage {
         this.departmentForm.reset();
         this.notifier.success(`${department.name} added`);
       },
-      error: (error: unknown) => this.showFieldError(this.departmentForm.controls.name, error),
+      error: (error: unknown) => {
+        // A duplicate or invalid name belongs next to the field; anything else is not about the name.
+        if (error instanceof HttpErrorResponse && (error.status === 400 || error.status === 409)) {
+          this.showFieldError(this.departmentForm.controls.name, error);
+        } else {
+          this.notifier.error(error);
+        }
+      },
     });
   }
 

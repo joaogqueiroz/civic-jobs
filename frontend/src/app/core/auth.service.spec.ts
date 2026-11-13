@@ -110,6 +110,7 @@ describe('AuthService', () => {
     expect(completed).toBe(true);
     expect(service.isAuthenticated()).toBe(false);
     expect(service.home()).toBe('/open-positions');
+    expect(localStorage.getItem('civicjobs.sessionExpiresAt')).toBeNull();
   });
 
   it('loadCurrentUser sends one request when called again while the first is still running', () => {
