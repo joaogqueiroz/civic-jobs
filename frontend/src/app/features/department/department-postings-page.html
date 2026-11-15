@@ -1,0 +1,46 @@
+<header class="page-header">
+  <h1 class="page-title">{{ auth.currentUser()?.departmentName ?? 'Department' }}</h1>
+  <p class="muted">Approve postings before candidates see them, and decide on applications.</p>
+</header>
+
+<mat-chip-listbox
+  class="filters"
+  aria-label="Filter by status"
+  [value]="selectedStatus() ?? ''"
+  (change)="filterBy($event.value)"
+>
+  @for (filter of filters(); track filter.value) {
+    <mat-chip-option [value]="filter.value" [selected]="(selectedStatus() ?? '') === filter.value">
+      {{ filter.label }} <span class="count num">{{ filter.count }}</span>
+    </mat-chip-option>
+  }
+</mat-chip-listbox>
+
+@if (postings.isLoading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Loading postings" />
+}
+
+@if (postings.hasValue()) {
+  @if (visible().length === 0) {
+    <p class="empty" aria-live="polite">Nothing here right now.</p>
+  } @else {
+    <ul class="cards" role="list">
+      @for (posting of visible(); track posting.id) {
+        <li>
+          <a class="card" [routerLink]="['/department', posting.id]">
+            <span class="card-top">
+              <span class="title">{{ posting.title }}</span>
+              <app-status-badge [status]="posting.status" />
+            </span>
+            <span class="small muted">{{ posting.location }}</span>
+            <span class="small num">
+              Closes {{ posting.closingDate | date: 'MMM d, y' : 'UTC' }} ·
+              {{ posting.salaryMin | currency: 'USD' : 'symbol' : '1.0-0' }} –
+              {{ posting.salaryMax | currency: 'USD' : 'symbol' : '1.0-0' }}
+            </span>
+          </a>
+        </li>
+      }
+    </ul>
+  }
+}

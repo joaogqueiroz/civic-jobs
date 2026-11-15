@@ -1,5 +1,6 @@
 using CivicJobs.Application.Exceptions;
 using CivicJobs.Core.Entities;
+using CivicJobs.Core.Enums;
 using CivicJobs.Infrastructure.Persistence.Repositories;
 using Shouldly;
 
@@ -60,7 +61,67 @@ public sealed class UserRepositoryTests : IDisposable
         await addDuplicate.ShouldThrowAsync<ConflictException>();
     }
 
+    [Fact]
+    [Trait("Rule", "BR-13")]
+    public async Task AddAsync_SavesRoleAgencyAndDepartment()
+    {
+        var agencyId = Guid.NewGuid();
+        var departmentId = Guid.NewGuid();
+        var staff = Staff("recruiter@cityofexample.gov", UserRole.Recruiter, agencyId, departmentId);
+
+        await Repository().AddAsync(staff, CancellationToken.None);
+
+        var stored = await Repository().GetByIdAsync(staff.Id, CancellationToken.None);
+        stored.ShouldNotBeNull();
+        stored.ShouldSatisfyAllConditions(
+            () => stored.Role.ShouldBe(UserRole.Recruiter),
+            () => stored.AgencyId.ShouldBe(agencyId),
+            () => stored.DepartmentId.ShouldBe(departmentId));
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-13")]
+    [Trait("Rule", "BR-15")]
+    public async Task ListStaffByAgencyAsync_ReturnsOnlyStaffOfThatAgencyByName()
+    {
+        var agencyId = Guid.NewGuid();
+        var zoe = await SeedAsync(Staff("zoe@cityofexample.gov", UserRole.Admin, agencyId, null, "Zoe Admin"));
+        var ana = await SeedAsync(Staff("ana@cityofexample.gov", UserRole.Recruiter, agencyId, Guid.NewGuid(), "Ana Recruiter"));
+        await SeedAsync(Staff("other@county.gov", UserRole.Admin, Guid.NewGuid(), null));
+        await SeedAsync(User.CreateCandidate("candidate@example.com", "Alex Kim", "hashed-password", Now));
+
+        var result = await Repository().ListStaffByAgencyAsync(agencyId, CancellationToken.None);
+
+        result.Select(u => u.Id).ShouldBe([ana.Id, zoe.Id]);
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-14")]
+    public async Task UpdateAsync_SavesNewRoleAndDepartment()
+    {
+        var staff = await SeedAsync(Staff("recruiter@cityofexample.gov", UserRole.Recruiter, Guid.NewGuid(), Guid.NewGuid()));
+        var newDepartment = Guid.NewGuid();
+        var repository = Repository();
+        var loaded = await repository.GetByIdAsync(staff.Id, CancellationToken.None);
+        loaded!.ChangeRole(UserRole.HiringManager, newDepartment);
+
+        await repository.UpdateAsync(loaded, CancellationToken.None);
+
+        var stored = await Repository().GetByIdAsync(staff.Id, CancellationToken.None);
+        stored!.Role.ShouldBe(UserRole.HiringManager);
+        stored.DepartmentId.ShouldBe(newDepartment);
+    }
+
+    private async Task<User> SeedAsync(User user)
+    {
+        await Repository().AddAsync(user, CancellationToken.None);
+        return user;
+    }
+
+    private static User Staff(string email, UserRole role, Guid agencyId, Guid? departmentId, string fullName = "Sam Patel") =>
+        User.CreateStaff(email, fullName, "hashed-password", role, agencyId, departmentId, Now);
+
     private UserRepository Repository() => new(_database.CreateContext());
 
-    private static User NewUser() => User.Create("recruiter@cityofexample.gov", "Jane Doe", "hashed-password", Now);
+    private static User NewUser() => User.CreateCandidate("recruiter@cityofexample.gov", "Jane Doe", "hashed-password", Now);
 }

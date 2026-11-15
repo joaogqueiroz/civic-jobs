@@ -37,19 +37,51 @@ public sealed class DbInitializerTests : IDisposable
     }
 
     [Fact]
-    [Trait("Rule", "BR-01")]
-    public async Task InitializeAsync_OnEmptyDatabase_SeedsTwoRecruitersWithDemoPassword()
+    [Trait("Rule", "BR-13")]
+    public async Task InitializeAsync_OnEmptyDatabase_SeedsOneUserPerRoleWithDemoPassword()
     {
         await InitializeAsync();
 
         await using var context = CreateContext();
         var users = await context.Users.ToListAsync();
-        users.Select(u => u.Email).ShouldBe([FirstRecruiter, SecondRecruiter], ignoreOrder: true);
+        users.Select(u => (u.Email, u.Role)).ShouldBe(
+        [
+            ("admin@cityofexample.gov", UserRole.Admin),
+            (FirstRecruiter, UserRole.Recruiter),
+            (SecondRecruiter, UserRole.Recruiter),
+            ("manager@cityofexample.gov", UserRole.HiringManager),
+            ("manager2@cityofexample.gov", UserRole.HiringManager),
+            ("candidate@example.com", UserRole.Candidate)
+        ], ignoreOrder: true);
         users.ShouldAllBe(u => _passwordHasher.Verify(u.PasswordHash, "Demo@12345"));
     }
 
     [Fact]
-    public async Task InitializeAsync_OnEmptyDatabase_SeedsFirstRecruiterWithTwoDraftTwoOpenAndOneClosedPosting()
+    [Trait("Rule", "BR-13")]
+    public async Task InitializeAsync_OnEmptyDatabase_SeedsAgencyWithTwoDepartmentsAndPlacesStaffInThem()
+    {
+        await InitializeAsync();
+
+        await using var context = CreateContext();
+        var agency = await context.Agencies.SingleAsync();
+        var departments = await context.Departments.ToDictionaryAsync(d => d.Name);
+        var users = await context.Users.ToDictionaryAsync(u => u.Email);
+
+        agency.Name.ShouldBe("City of Example");
+        departments.Keys.ShouldBe(["Parks & Recreation", "Public Works"], ignoreOrder: true);
+        departments.Values.ShouldAllBe(d => d.AgencyId == agency.Id);
+        users.ShouldSatisfyAllConditions(
+            () => users["admin@cityofexample.gov"].AgencyId.ShouldBe(agency.Id),
+            () => users["admin@cityofexample.gov"].DepartmentId.ShouldBeNull(),
+            () => users[FirstRecruiter].DepartmentId.ShouldBe(departments["Parks & Recreation"].Id),
+            () => users[SecondRecruiter].DepartmentId.ShouldBe(departments["Public Works"].Id),
+            () => users["manager@cityofexample.gov"].DepartmentId.ShouldBe(departments["Parks & Recreation"].Id),
+            () => users["manager2@cityofexample.gov"].DepartmentId.ShouldBe(departments["Public Works"].Id),
+            () => users["candidate@example.com"].AgencyId.ShouldBeNull());
+    }
+
+    [Fact]
+    public async Task InitializeAsync_OnEmptyDatabase_SeedsFirstRecruiterWithTwoDraftOnePendingTwoOpenAndOneClosedPosting()
     {
         await InitializeAsync();
 
@@ -59,9 +91,10 @@ public sealed class DbInitializerTests : IDisposable
 
         postings.ShouldSatisfyAllConditions(
             () => postings.Count(p => p.Status == JobPostingStatus.Draft).ShouldBe(2),
+            () => postings.Count(p => p.Status == JobPostingStatus.PendingApproval).ShouldBe(1),
             () => postings.Count(p => p.Status == JobPostingStatus.Open).ShouldBe(2),
             () => postings.Count(p => p.Status == JobPostingStatus.Closed).ShouldBe(1),
-            () => postings.ShouldAllBe(p => p.Department == "Parks & Recreation"));
+            () => postings.ShouldAllBe(p => p.Department == "Parks & Recreation" && p.DepartmentId == owner.DepartmentId));
     }
 
     [Fact]
@@ -75,7 +108,27 @@ public sealed class DbInitializerTests : IDisposable
         var postings = await context.JobPostings.Where(p => p.CreatedByUserId == owner.Id).ToListAsync();
 
         postings.Count.ShouldBe(2);
-        postings.ShouldAllBe(p => p.Department == "Public Works");
+        postings.ShouldAllBe(p => p.Department == "Public Works" && p.DepartmentId == owner.DepartmentId);
+    }
+
+    [Fact]
+    [Trait("Requirement", "FR-19")]
+    public async Task InitializeAsync_OnEmptyDatabase_SeedsTwoApplicationsOfTheCandidateToOpenPostings()
+    {
+        await InitializeAsync();
+
+        await using var context = CreateContext();
+        var candidate = await context.Users.SingleAsync(u => u.Email == "candidate@example.com");
+        var applications = await context.JobApplications.ToListAsync();
+        var titles = await context.JobPostings.ToDictionaryAsync(p => p.Id, p => (p.Title, p.Status));
+
+        applications.ShouldAllBe(a => a.CandidateId == candidate.Id);
+        applications.Select(a => (titles[a.JobPostingId].Title, a.Status)).ShouldBe(
+        [
+            ("Recreation Program Coordinator", JobApplicationStatus.Submitted),
+            ("Groundskeeper", JobApplicationStatus.UnderReview)
+        ], ignoreOrder: true);
+        applications.ShouldAllBe(a => titles[a.JobPostingId].Status == JobPostingStatus.Open);
     }
 
     [Fact]
@@ -85,8 +138,8 @@ public sealed class DbInitializerTests : IDisposable
         await InitializeAsync();
 
         await using var context = CreateContext();
-        (await context.Users.CountAsync()).ShouldBe(2);
-        (await context.JobPostings.CountAsync()).ShouldBe(7);
+        (await context.Users.CountAsync()).ShouldBe(6);
+        (await context.JobPostings.CountAsync()).ShouldBe(8);
     }
 
     [Fact]
@@ -108,8 +161,8 @@ public sealed class DbInitializerTests : IDisposable
 
             await using var check = new CivicJobsDbContext(
                 new DbContextOptionsBuilder<CivicJobsDbContext>().UseSqlite(connectionString).Options);
-            (await check.Users.CountAsync()).ShouldBe(2);
-            (await check.JobPostings.CountAsync()).ShouldBe(7);
+            (await check.Users.CountAsync()).ShouldBe(6);
+            (await check.JobPostings.CountAsync()).ShouldBe(8);
         }
         finally
         {

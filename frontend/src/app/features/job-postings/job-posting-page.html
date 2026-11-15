@@ -23,7 +23,7 @@
         @for (step of steps; track step) {
           <li [class]="'step ' + stepState(step)" [attr.aria-current]="stepState(step) === 'current' ? 'step' : null">
             <span class="marker" aria-hidden="true"></span>
-            <span class="step-label">{{ step }}</span>
+            <span class="step-label">{{ stepLabels[step] }}</span>
           </li>
         }
       </ol>
@@ -31,16 +31,28 @@
       @if (current(); as p) {
         @switch (p.status) {
           @case ('Draft') {
+            @if (p.rejectionReason) {
+              <div class="rejection" role="note">
+                <p class="rejection-title">Changes requested</p>
+                <p>{{ p.rejectionReason }}</p>
+              </div>
+            }
             <p class="small muted">
-              Not visible to candidates yet. Publish it when the details are ready. The closing date must be after
-              today.
+              Not visible to candidates yet. When the details are ready, send it to your hiring manager for approval.
+              The closing date must be after today.
             </p>
-            <button mat-flat-button type="button" class="full-width" (click)="publish(p)" [disabled]="busy()">
-              Publish
+            <button mat-flat-button type="button" class="full-width" (click)="submit(p)" [disabled]="busy()">
+              Submit for approval
             </button>
             <button mat-button type="button" class="danger-text full-width" (click)="delete(p)" [disabled]="busy()">
               Delete draft
             </button>
+          }
+          @case ('PendingApproval') {
+            <p class="small muted">
+              Waiting for the {{ p.department }} hiring manager. It can't be edited until they approve it or ask
+              for changes.
+            </p>
           }
           @case ('Open') {
             <p class="small muted">
@@ -56,12 +68,14 @@
           }
         }
       } @else {
-        <p class="small muted">New postings start as a draft. You can publish it once it's created.</p>
+        <p class="small muted">
+          New postings start as a draft. Once it's created, send it to your hiring manager for approval.
+        </p>
       }
     </aside>
 
     <form class="panel form" [formGroup]="form" (ngSubmit)="save()" novalidate>
-      @if (!isClosed()) {
+      @if (!isReadOnly()) {
         <p class="small muted required-note">All fields are required.</p>
       }
 
@@ -80,17 +94,10 @@
             }
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Department</mat-label>
-            <input matInput formControlName="department" />
-            @if (form.controls.department.hasError('server')) {
-              <mat-error>{{ form.controls.department.getError('server') }}</mat-error>
-            } @else if (form.controls.department.hasError('required')) {
-              <mat-error>Enter the department.</mat-error>
-            } @else if (form.controls.department.invalid) {
-              <mat-error>Use at most 100 characters.</mat-error>
-            }
-          </mat-form-field>
+          <div class="read-only-field">
+            <span class="small muted">Department</span>
+            <span data-testid="department">{{ department() }}</span>
+          </div>
 
           <mat-form-field appearance="outline">
             <mat-label>Location</mat-label>
@@ -172,7 +179,7 @@
         </div>
       </section>
 
-      @if (!isClosed()) {
+      @if (!isReadOnly()) {
         <div class="form-actions">
           <a mat-button routerLink="/job-postings">Cancel</a>
           <button mat-flat-button type="submit" [disabled]="busy()">

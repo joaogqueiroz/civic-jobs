@@ -183,3 +183,30 @@ mat-progress-bar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+// The department comes from the account, so it reads as plain text inside the form grid.
+.read-only-field {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 56px;
+  padding: 0 4px;
+}
+
+.rejection {
+  padding: 12px;
+  border-radius: var(--cj-radius);
+  background: #fbf1dc;
+  color: #5c3c04;
+
+  p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.rejection-title {
+  font-weight: 600;
+  margin-bottom: 4px !important;
+}

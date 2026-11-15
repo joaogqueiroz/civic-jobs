@@ -10,7 +10,7 @@ import { Router, RouterLink } from '@angular/router';
 import { of } from 'rxjs';
 import { JobPosting, JobPostingStatus } from '../../core/models';
 import { Notifier } from '../../core/notifier';
-import { StatusBadge } from '../../shared/status-badge';
+import { STATUS_LABELS, StatusBadge } from '../../shared/status-badge';
 import { JobPostingsService } from './job-postings.service';
 import { STATUSES } from './labels';
 
@@ -69,7 +69,7 @@ export class JobPostingsListPage {
       { value: '', label: 'All', count: all.length },
       ...STATUSES.map((status) => ({
         value: status,
-        label: status,
+        label: STATUS_LABELS[status],
         count: all.filter((posting) => posting.status === status).length,
       })),
     ];

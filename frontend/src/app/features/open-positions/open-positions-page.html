@@ -50,6 +50,32 @@
             </dl>
 
             <p class="description">{{ position.description }}</p>
+
+            @if (isCandidate()) {
+              <div class="apply">
+                @if (appliedIds().has(position.id)) {
+                  <span class="applied small">
+                    <mat-icon aria-hidden="true">check_circle</mat-icon>
+                    Applied · <a routerLink="/my-applications">See status</a>
+                  </span>
+                } @else {
+                  <button
+                    mat-flat-button
+                    type="button"
+                    (click)="apply(position)"
+                    [disabled]="applyingTo() === position.id"
+                  >
+                    Apply
+                  </button>
+                }
+              </div>
+            } @else if (!auth.isAuthenticated()) {
+              <div class="apply">
+                <a mat-stroked-button routerLink="/login" [queryParams]="{ returnUrl: '/open-positions' }">
+                  Log in to apply
+                </a>
+              </div>
+            }
           </article>
         </li>
       }

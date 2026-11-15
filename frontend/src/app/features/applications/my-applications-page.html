@@ -1,0 +1,36 @@
+<header class="page-header">
+  <h1 class="page-title">My applications</h1>
+  <p class="muted">We also email you every time an application changes status.</p>
+</header>
+
+@if (applications.isLoading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Loading applications" />
+}
+
+@if (applications.hasValue()) {
+  @if (applications.value().length === 0) {
+    <section class="empty">
+      <p>You haven't applied to any position yet.</p>
+      <a mat-flat-button routerLink="/open-positions">See open positions</a>
+    </section>
+  } @else {
+    <ul class="list" role="list">
+      @for (application of applications.value(); track application.id) {
+        <li class="item">
+          <div class="item-top">
+            <div>
+              <h2 class="section-title">{{ application.jobTitle }}</h2>
+              <p class="small muted">{{ application.department }} · {{ application.location }}</p>
+            </div>
+            <app-status-badge [status]="application.status" />
+          </div>
+          <p>{{ nextStep[application.status] }}</p>
+          <p class="small muted num">
+            Applied {{ application.appliedAt | date: 'MMM d, y' }} · Updated
+            {{ application.updatedAt | date: 'MMM d, y' }}
+          </p>
+        </li>
+      }
+    </ul>
+  }
+}

@@ -1,6 +1,6 @@
 <section class="auth-card" aria-labelledby="login-title">
   <h1 id="login-title" class="page-title">Log in to CivicJobs</h1>
-  <p class="subtitle muted">Manage your department’s job postings.</p>
+  <p class="subtitle muted">Staff manage postings and applications. Candidates follow their applications.</p>
 
   <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
     @if (credentialsError()) {
@@ -33,9 +33,10 @@
   </form>
 
   <p class="switch small">
-    New to CivicJobs? <a routerLink="/register">Create an account</a>
+    Looking for a job? <a routerLink="/register">Create a candidate account</a>
   </p>
   <p class="switch small">
-    Looking for a job? <a routerLink="/open-positions">See open positions</a>
+    Or <a routerLink="/open-positions">browse open positions</a> without an account.
   </p>
+  <p class="switch small">Staff accounts are created by your agency admin.</p>
 </section>

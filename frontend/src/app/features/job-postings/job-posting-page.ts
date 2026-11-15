@@ -13,6 +13,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { Router, RouterLink } from '@angular/router';
 import { Observable, defer, filter, finalize, switchMap } from 'rxjs';
 import { applyServerErrors } from '../../core/api-errors';
+import { AuthService } from '../../core/auth.service';
 import { EmploymentType, JobPosting, JobPostingInput, JobPostingStatus } from '../../core/models';
 import { Notifier } from '../../core/notifier';
 import { formFieldDefaults } from '../../shared/form-field-defaults';
@@ -50,6 +51,7 @@ export class JobPostingPage {
   private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
   private readonly notifier = inject(Notifier);
+  private readonly auth = inject(AuthService);
 
   /** From the route data. */
   readonly mode = input.required<JobPostingPageMode>();
@@ -57,6 +59,13 @@ export class JobPostingPage {
   readonly id = input<string>();
 
   protected readonly steps = STATUSES;
+  /** Short names that fit the four-step track in the side panel. */
+  protected readonly stepLabels: Record<JobPostingStatus, string> = {
+    Draft: 'Draft',
+    PendingApproval: 'Approval',
+    Open: 'Open',
+    Closed: 'Closed',
+  };
   protected readonly employmentTypes = EMPLOYMENT_TYPES;
   protected readonly today = new Date().toLocaleDateString('en-CA'); // yyyy-MM-dd, local date
   protected readonly busy = signal(false);
@@ -68,11 +77,18 @@ export class JobPostingPage {
 
   protected readonly current = computed(() => (this.posting.hasValue() ? this.posting.value() : undefined));
   protected readonly isCreate = computed(() => this.mode() === 'create');
-  protected readonly isClosed = computed(() => this.current()?.status === 'Closed');
+  /** Closed postings are a record, and postings waiting for approval are frozen until the decision (BR-06). */
+  protected readonly isReadOnly = computed(() => {
+    const status = this.current()?.status;
+    return status === 'Closed' || status === 'PendingApproval';
+  });
+  /** The department comes from the recruiter's account (BR-13); an existing posting keeps the one it was created in. */
+  protected readonly department = computed(
+    () => this.current()?.department ?? this.auth.currentUser()?.departmentName ?? '',
+  );
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     title: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(150)]],
-    department: ['', [Validators.required, Validators.maxLength(100)]],
     location: ['', [Validators.required, Validators.maxLength(100)]],
     employmentType: ['FullTime' as EmploymentType, Validators.required],
     salaryMin: [null as number | null, [Validators.required, Validators.min(0.01)]],
@@ -88,11 +104,10 @@ export class JobPostingPage {
         return;
       }
 
-      const { title, department, location, employmentType, salaryMin, salaryMax, description, closingDate } = posting;
-      this.form.reset({ title, department, location, employmentType, salaryMin, salaryMax, description, closingDate });
+      const { title, location, employmentType, salaryMin, salaryMax, description, closingDate } = posting;
+      this.form.reset({ title, location, employmentType, salaryMin, salaryMax, description, closingDate });
 
-      // Closed postings are kept as a record and can't be edited (BR-06).
-      if (posting.status === 'Closed') {
+      if (posting.status === 'Closed' || posting.status === 'PendingApproval') {
         this.form.disable();
       } else {
         this.form.enable();
@@ -144,8 +159,8 @@ export class JobPostingPage {
     }
   }
 
-  protected publish(posting: JobPosting): void {
-    this.run(this.service.publish(posting.id), 'Posting published', (saved) => this.posting.set(saved));
+  protected submit(posting: JobPosting): void {
+    this.run(this.service.submit(posting.id), 'Sent for approval', (saved) => this.posting.set(saved));
   }
 
   protected close(posting: JobPosting): void {

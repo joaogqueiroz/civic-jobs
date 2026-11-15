@@ -58,6 +58,27 @@ public class JobPostingTests
         create.ShouldThrow<DomainValidationException>();
     }
 
+    [Fact]
+    [Trait("Requirement", "FR-04")]
+    public void Create_WithDepartment_SetsDepartmentIdAndName()
+    {
+        var departmentId = Guid.NewGuid();
+
+        var posting = CreatePosting(departmentId: departmentId, department: "Public Works");
+
+        posting.DepartmentId.ShouldBe(departmentId);
+        posting.Department.ShouldBe("Public Works");
+    }
+
+    [Fact]
+    [Trait("Rule", "BR-13")]
+    public void Create_WhenDepartmentIdIsEmpty_ThrowsDomainValidationException()
+    {
+        var create = () => CreatePosting(departmentId: Guid.Empty);
+
+        create.ShouldThrow<DomainValidationException>();
+    }
+
     [Theory]
     [Trait("Rule", "BR-03")]
     [InlineData(null)]
@@ -138,6 +159,7 @@ public class JobPostingTests
 
     private static JobPosting CreatePosting(
         Guid? createdByUserId = null,
+        Guid? departmentId = null,
         string title = "Park Ranger",
         string department = "Parks & Recreation",
         string description = "Patrol city parks and assist visitors.",
@@ -149,6 +171,7 @@ public class JobPostingTests
         JobPosting.Create(
             createdByUserId: createdByUserId ?? Guid.NewGuid(),
             title: title,
+            departmentId: departmentId ?? Guid.NewGuid(),
             department: department,
             description: description,
             location: location,

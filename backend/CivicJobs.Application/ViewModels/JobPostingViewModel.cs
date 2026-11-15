@@ -14,6 +14,7 @@ public sealed record JobPostingViewModel(
     decimal SalaryMax,
     DateOnly ClosingDate,
     JobPostingStatus Status,
+    string? RejectionReason,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt)
 {
@@ -28,6 +29,7 @@ public sealed record JobPostingViewModel(
         posting.SalaryMax,
         posting.ClosingDate,
         posting.Status,
+        posting.RejectionReason,
         posting.CreatedAt,
         posting.UpdatedAt);
 }

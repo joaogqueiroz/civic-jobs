@@ -17,10 +17,6 @@ public abstract class JobPostingInputModelValidator<T> : AbstractValidator<T>
             .MinimumLength(3)
             .MaximumLength(150);
 
-        RuleFor(m => m.Department)
-            .NotEmpty()
-            .MaximumLength(100);
-
         RuleFor(m => m.Description)
             .NotEmpty()
             .MaximumLength(4000);

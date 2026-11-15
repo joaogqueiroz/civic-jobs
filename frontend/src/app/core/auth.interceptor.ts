@@ -3,22 +3,22 @@ import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
 
-/** Adds the Bearer token to API calls and logs out when the API says the session is no longer valid. */
+/**
+ * The browser sends the httpOnly session cookie by itself (same origin through the proxy), so no header is added.
+ * This only ends the session when the API says it is no longer valid.
+ */
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
-  const token = auth.accessToken();
 
-  const authorized = token
-    ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
-    : request;
-
-  return next(authorized).pipe(
+  return next(request).pipe(
     catchError((error: unknown) => {
-      // A 401 from login or register means wrong credentials, not an expired session.
-      const isAuthEndpoint = request.url.startsWith('/identity/api/auth/');
+      // A 401 from login means wrong credentials, and /users/me at startup just means "not logged in".
+      const isSessionCheck =
+        request.url.startsWith('/identity/api/auth/') ||
+        (request.url === '/identity/api/users/me' && !auth.isAuthenticated());
 
-      if (error instanceof HttpErrorResponse && error.status === 401 && !isAuthEndpoint) {
-        auth.logout();
+      if (error instanceof HttpErrorResponse && error.status === 401 && !isSessionCheck) {
+        auth.endSession();
       }
 
       return throwError(() => error);

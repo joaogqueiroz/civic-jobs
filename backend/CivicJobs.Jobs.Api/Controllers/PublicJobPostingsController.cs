@@ -1,4 +1,4 @@
-using CivicJobs.Application.Services;
+using CivicJobs.Application.Services.Interfaces;
 using CivicJobs.Application.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

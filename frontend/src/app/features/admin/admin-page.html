@@ -1,0 +1,167 @@
+<header class="page-header">
+  <h1 class="page-title">{{ auth.currentUser()?.agencyName ?? 'Agency' }}</h1>
+  <p class="muted">Set up departments and the staff who write, approve and decide on postings.</p>
+</header>
+
+@if (departments.isLoading() || staff.isLoading() || busy()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Working" />
+}
+
+<div class="layout">
+  <section class="panel" aria-labelledby="departments-title">
+    <h2 id="departments-title" class="section-title">Departments</h2>
+
+    <ul class="department-list" role="list">
+      @for (department of departmentList(); track department.id) {
+        <li>{{ department.name }}</li>
+      } @empty {
+        <li class="muted">No departments yet.</li>
+      }
+    </ul>
+
+    <form class="inline-form" [formGroup]="departmentForm" (ngSubmit)="addDepartment()" novalidate>
+      <mat-form-field appearance="outline">
+        <mat-label>New department</mat-label>
+        <input matInput formControlName="name" />
+        @if (departmentForm.controls.name.hasError('server')) {
+          <mat-error>{{ departmentForm.controls.name.getError('server') }}</mat-error>
+        } @else if (departmentForm.controls.name.hasError('required')) {
+          <mat-error>Enter a name.</mat-error>
+        } @else if (departmentForm.controls.name.hasError('maxlength')) {
+          <mat-error>Use at most 100 characters.</mat-error>
+        }
+      </mat-form-field>
+      <button mat-stroked-button type="submit" [disabled]="busy()">Add</button>
+    </form>
+  </section>
+
+  <section class="panel" aria-labelledby="staff-title">
+    <h2 id="staff-title" class="section-title">Staff</h2>
+
+    @if (staff.hasValue()) {
+      <ul class="staff-list" role="list">
+        @for (member of staff.value(); track member.id) {
+          <li class="staff">
+            <div class="staff-info">
+              <span class="name">
+                {{ member.fullName }}
+                @if (member.id === auth.currentUser()?.id) {
+                  <span class="small muted">(you)</span>
+                }
+              </span>
+              <span class="small muted email">{{ member.email }}</span>
+            </div>
+
+            @if (editingId() === member.id) {
+              <form class="role-form" [formGroup]="roleForm" (ngSubmit)="saveRole(member)" novalidate>
+                <mat-form-field appearance="outline">
+                  <mat-label>Role</mat-label>
+                  <mat-select formControlName="role">
+                    @for (role of roles; track role) {
+                      <mat-option [value]="role">{{ roleLabels[role] }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (needsDepartment(roleForm.controls.role.value)) {
+                  <mat-form-field appearance="outline">
+                    <mat-label>Department</mat-label>
+                    <mat-select formControlName="departmentId">
+                      @for (department of departmentList(); track department.id) {
+                        <mat-option [value]="department.id">{{ department.name }}</mat-option>
+                      }
+                    </mat-select>
+                    @if (roleForm.controls.departmentId.touched && !roleForm.controls.departmentId.value) {
+                      <mat-hint class="field-error">Choose a department.</mat-hint>
+                    }
+                  </mat-form-field>
+                }
+                <div class="row-actions">
+                  <button mat-button type="button" (click)="editingId.set(null)">Cancel</button>
+                  <button mat-flat-button type="submit" [disabled]="busy()">Save</button>
+                </div>
+              </form>
+            } @else {
+              <div class="staff-role">
+                <span>
+                  {{ roleLabels[member.role] }}
+                  @if (member.departmentName) {
+                    <span class="muted">· {{ member.departmentName }}</span>
+                  }
+                </span>
+                @if (member.id !== auth.currentUser()?.id) {
+                  <button mat-button type="button" (click)="startEditing(member)">Change role</button>
+                }
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+
+    <h3 class="subsection-title">Add a staff account</h3>
+    <form class="staff-form" [formGroup]="staffForm" (ngSubmit)="addStaff()" novalidate>
+      <mat-form-field appearance="outline">
+        <mat-label>Full name</mat-label>
+        <input matInput formControlName="fullName" autocomplete="off" />
+        @if (staffForm.controls.fullName.hasError('server')) {
+          <mat-error>{{ staffForm.controls.fullName.getError('server') }}</mat-error>
+        } @else if (staffForm.controls.fullName.invalid) {
+          <mat-error>Enter a name of up to 100 characters.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Work email</mat-label>
+        <input matInput type="email" formControlName="email" autocomplete="off" />
+        @if (staffForm.controls.email.hasError('server')) {
+          <mat-error>{{ staffForm.controls.email.getError('server') }}</mat-error>
+        } @else if (staffForm.controls.email.invalid) {
+          <mat-error>Enter an email like name&#64;agency.gov.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>First password</mat-label>
+        <input matInput type="password" formControlName="password" autocomplete="new-password" />
+        <mat-hint>8 to 128 characters, with a letter and a number.</mat-hint>
+        @if (staffForm.controls.password.hasError('server')) {
+          <mat-error>{{ staffForm.controls.password.getError('server') }}</mat-error>
+        } @else if (staffForm.controls.password.invalid) {
+          <mat-error>Use 8 to 128 characters, with a letter and a number.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Role</mat-label>
+        <mat-select formControlName="role">
+          @for (role of roles; track role) {
+            <mat-option [value]="role">{{ roleLabels[role] }}</mat-option>
+          }
+        </mat-select>
+        @if (staffForm.controls.role.hasError('server')) {
+          <mat-error>{{ staffForm.controls.role.getError('server') }}</mat-error>
+        }
+      </mat-form-field>
+
+      @if (needsDepartment(staffForm.controls.role.value)) {
+        <mat-form-field appearance="outline">
+          <mat-label>Department</mat-label>
+          <mat-select formControlName="departmentId">
+            @for (department of departmentList(); track department.id) {
+              <mat-option [value]="department.id">{{ department.name }}</mat-option>
+            }
+          </mat-select>
+          @if (staffForm.controls.departmentId.hasError('server')) {
+            <mat-error>{{ staffForm.controls.departmentId.getError('server') }}</mat-error>
+          } @else if (staffForm.controls.departmentId.touched && !staffForm.controls.departmentId.value) {
+            <mat-hint class="field-error">Choose a department.</mat-hint>
+          }
+        </mat-form-field>
+      }
+
+      <div class="form-actions">
+        <button mat-flat-button type="submit" [disabled]="busy()">Create account</button>
+      </div>
+    </form>
+  </section>
+</div>

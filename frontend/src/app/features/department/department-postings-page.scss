@@ -1,0 +1,76 @@
+:host {
+  display: block;
+}
+
+.page-header p {
+  margin: 4px 0 0;
+}
+
+.filters {
+  display: block;
+  margin: 20px 0 24px;
+}
+
+.count {
+  margin-left: 4px;
+  color: var(--cj-muted);
+  font-weight: 500;
+}
+
+mat-progress-bar {
+  margin-bottom: 8px;
+}
+
+.empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--cj-muted);
+  background: var(--cj-surface);
+  border: 1px dashed var(--cj-border);
+  border-radius: var(--cj-radius);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+  color: var(--cj-text);
+  text-decoration: none;
+  background: var(--cj-surface);
+  border: 1px solid var(--cj-border);
+  border-radius: var(--cj-radius);
+
+  &:hover {
+    border-color: var(--cj-primary);
+  }
+}
+
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}

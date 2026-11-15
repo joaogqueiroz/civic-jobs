@@ -53,12 +53,11 @@ export class RegisterPage {
       .register(input)
       .pipe(
         switchMap(() => this.auth.login({ email: input.email, password: input.password })),
-        switchMap(() => this.auth.loadCurrentUser()),
       )
       .subscribe({
         next: () => {
           this.notifier.success('Account created');
-          void this.router.navigateByUrl('/job-postings');
+          void this.router.navigateByUrl('/open-positions');
         },
         error: (error: unknown) => {
           this.submitting.set(false);

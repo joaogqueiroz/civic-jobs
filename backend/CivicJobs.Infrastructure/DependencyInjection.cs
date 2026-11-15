@@ -2,6 +2,7 @@ using System.Text;
 using CivicJobs.Application.Abstractions;
 using CivicJobs.Core.Repositories;
 using CivicJobs.Infrastructure.Auth;
+using CivicJobs.Infrastructure.Email;
 using CivicJobs.Infrastructure.Persistence;
 using CivicJobs.Infrastructure.Persistence.Repositories;
 using Microsoft.Data.Sqlite;
@@ -30,6 +31,9 @@ public static class DependencyInjection
         services.AddDbContext<CivicJobsDbContext>(options => options.UseSqlite(connectionString));
         services.AddScoped<IJobPostingRepository, JobPostingRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IAgencyRepository, AgencyRepository>();
+        services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+        services.AddScoped<IJobApplicationRepository, JobApplicationRepository>();
 
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))
@@ -44,6 +48,7 @@ public static class DependencyInjection
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, JwtTokenService>();
+        services.AddSingleton<IEmailSender, LoggingEmailSender>();
 
         return services;
     }

@@ -76,7 +76,6 @@ public class UpdateJobPostingInputModelValidatorTests
     private static UpdateJobPostingInputModel ValidModel() => new()
     {
         Title = "Senior Park Ranger",
-        Department = "Parks & Recreation",
         Description = "Lead the ranger team.",
         Location = "Central Park District",
         EmploymentType = EmploymentType.FullTime,

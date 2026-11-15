@@ -5,7 +5,6 @@ namespace CivicJobs.Application.InputModels;
 public abstract class JobPostingInputModel
 {
     public string Title { get; set; } = string.Empty;
-    public string Department { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
     public EmploymentType EmploymentType { get; set; }

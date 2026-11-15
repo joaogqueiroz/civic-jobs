@@ -1,11 +1,16 @@
-import { Routes } from '@angular/router';
-import { authGuard } from './core/auth.guard';
+import { inject } from '@angular/core';
+import { Router, Routes } from '@angular/router';
+import { roleGuard } from './core/auth.guard';
+import { AuthService } from './core/auth.service';
 
 const jobPostingPage = () =>
   import('./features/job-postings/job-posting-page').then((m) => m.JobPostingPage);
 
+/** "/" and unknown URLs go to the first page of the user's role, or to the public list when logged out. */
+const homeRedirect = () => inject(Router).parseUrl(inject(AuthService).home());
+
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'job-postings' },
+  { path: '', pathMatch: 'full', children: [], canActivate: [homeRedirect] },
   {
     path: 'login',
     title: 'Log in · CivicJobs',
@@ -13,7 +18,7 @@ export const routes: Routes = [
   },
   {
     path: 'register',
-    title: 'Register · CivicJobs',
+    title: 'Create an account · CivicJobs',
     loadComponent: () => import('./features/auth/register-page').then((m) => m.RegisterPage),
   },
   {
@@ -23,8 +28,15 @@ export const routes: Routes = [
       import('./features/open-positions/open-positions-page').then((m) => m.OpenPositionsPage),
   },
   {
+    path: 'my-applications',
+    title: 'My applications · CivicJobs',
+    canActivate: [roleGuard('Candidate')],
+    loadComponent: () =>
+      import('./features/applications/my-applications-page').then((m) => m.MyApplicationsPage),
+  },
+  {
     path: 'job-postings',
-    canActivate: [authGuard],
+    canActivate: [roleGuard('Recruiter')],
     children: [
       {
         path: '',
@@ -37,5 +49,29 @@ export const routes: Routes = [
       { path: ':id/edit', title: 'Edit posting · CivicJobs', data: { mode: 'edit' }, loadComponent: jobPostingPage },
     ],
   },
-  { path: '**', redirectTo: 'job-postings' },
+  {
+    path: 'department',
+    canActivate: [roleGuard('HiringManager')],
+    children: [
+      {
+        path: '',
+        title: 'Department postings · CivicJobs',
+        loadComponent: () =>
+          import('./features/department/department-postings-page').then((m) => m.DepartmentPostingsPage),
+      },
+      {
+        path: ':id',
+        title: 'Department posting · CivicJobs',
+        loadComponent: () =>
+          import('./features/department/department-posting-page').then((m) => m.DepartmentPostingPage),
+      },
+    ],
+  },
+  {
+    path: 'admin',
+    title: 'Agency admin · CivicJobs',
+    canActivate: [roleGuard('Admin')],
+    loadComponent: () => import('./features/admin/admin-page').then((m) => m.AdminPage),
+  },
+  { path: '**', children: [], canActivate: [homeRedirect] },
 ];

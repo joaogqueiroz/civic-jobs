@@ -6,40 +6,56 @@ import {
   RouterStateSnapshot,
   UrlTree,
 } from '@angular/router';
-import { authGuard } from './auth.guard';
+import { roleGuard } from './auth.guard';
 import { AuthService } from './auth.service';
+import { UserRole } from './models';
 
-describe('authGuard', () => {
-  let authenticated: boolean;
+describe('roleGuard', () => {
+  let role: UserRole | null;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
-        { provide: AuthService, useValue: { isAuthenticated: () => authenticated } },
+        {
+          provide: AuthService,
+          useValue: {
+            isAuthenticated: () => role !== null,
+            hasRole: (wanted: UserRole) => role === wanted,
+            home: () => (role === 'Candidate' ? '/open-positions' : '/department'),
+          },
+        },
       ],
     });
   });
 
-  const runGuard = (url: string) =>
+  const runGuard = (wanted: UserRole, url: string) =>
     TestBed.runInInjectionContext(() =>
-      authGuard({} as ActivatedRouteSnapshot, { url } as RouterStateSnapshot),
+      roleGuard(wanted)({} as ActivatedRouteSnapshot, { url } as RouterStateSnapshot),
     );
 
-  it('lets an authenticated user through', () => {
-    authenticated = true;
+  const serialize = (result: unknown) => TestBed.inject(Router).serializeUrl(result as UrlTree);
 
-    expect(runGuard('/job-postings')).toBe(true);
+  it('lets a user with the role through', () => {
+    role = 'Recruiter';
+
+    expect(runGuard('Recruiter', '/job-postings')).toBe(true);
   });
 
   it('redirects an anonymous user to /login and remembers where they were going', () => {
-    authenticated = false;
+    role = null;
 
-    const result = runGuard('/job-postings/new');
+    const result = runGuard('Recruiter', '/job-postings/new');
 
     expect(result).toBeInstanceOf(UrlTree);
-    expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe(
-      '/login?returnUrl=%2Fjob-postings%2Fnew',
-    );
+    expect(serialize(result)).toBe('/login?returnUrl=%2Fjob-postings%2Fnew');
+  });
+
+  it('sends a user of another role to their own first page', () => {
+    role = 'Candidate';
+
+    const result = runGuard('Recruiter', '/job-postings');
+
+    expect(serialize(result)).toBe('/open-positions');
   });
 });

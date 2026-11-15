@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using CivicJobs.Application.ViewModels;
 using Shouldly;
 
@@ -10,6 +11,11 @@ namespace CivicJobs.Identity.ApiTests;
 public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
 {
     private const string Password = "Demo@12345";
+
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     private readonly HttpClient _client;
 
@@ -26,6 +32,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         body.GetProperty("email").GetString().ShouldBe(email);
+        body.GetProperty("role").GetString().ShouldBe("Candidate");
         body.TryGetProperty("passwordHash", out _).ShouldBeFalse();
     }
 
@@ -58,7 +65,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
         var response = await _client.SendAsync(request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await response.Content.ReadFromJsonAsync<UserViewModel>())!.Email.ShouldBe(email);
+        (await response.Content.ReadFromJsonAsync<UserViewModel>(Json))!.Email.ShouldBe(email);
     }
 
     [Fact]

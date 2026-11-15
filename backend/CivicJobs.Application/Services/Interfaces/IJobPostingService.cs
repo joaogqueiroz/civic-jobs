@@ -2,7 +2,7 @@ using CivicJobs.Application.InputModels;
 using CivicJobs.Application.ViewModels;
 using CivicJobs.Core.Enums;
 
-namespace CivicJobs.Application.Services;
+namespace CivicJobs.Application.Services.Interfaces;
 
 public interface IJobPostingService
 {
@@ -16,7 +16,8 @@ public interface IJobPostingService
 
     Task DeleteAsync(Guid userId, Guid id, CancellationToken cancellationToken);
 
-    Task<JobPostingViewModel> PublishAsync(Guid userId, Guid id, CancellationToken cancellationToken);
+    /// <summary>Sends a Draft to the department's hiring manager (FR-08).</summary>
+    Task<JobPostingViewModel> SubmitAsync(Guid userId, Guid id, CancellationToken cancellationToken);
 
     Task<JobPostingViewModel> CloseAsync(Guid userId, Guid id, CancellationToken cancellationToken);
 

@@ -1,6 +1,6 @@
 <section class="auth-card" aria-labelledby="register-title">
-  <h1 id="register-title" class="page-title">Create your account</h1>
-  <p class="subtitle muted">Manage your department’s job postings.</p>
+  <h1 id="register-title" class="page-title">Create a candidate account</h1>
+  <p class="subtitle muted">Apply to open positions and follow each application.</p>
 
   <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
     <mat-form-field appearance="outline">
@@ -16,14 +16,14 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline">
-      <mat-label>Work email</mat-label>
+      <mat-label>Email</mat-label>
       <input matInput type="email" formControlName="email" autocomplete="username" />
       @if (form.controls.email.hasError('server')) {
         <mat-error>{{ form.controls.email.getError('server') }}</mat-error>
       } @else if (form.controls.email.hasError('required')) {
-        <mat-error>Enter your work email.</mat-error>
+        <mat-error>Enter your email.</mat-error>
       } @else if (form.controls.email.invalid) {
-        <mat-error>Enter an email like name&#64;agency.gov.</mat-error>
+        <mat-error>Enter an email like name&#64;example.com.</mat-error>
       }
     </mat-form-field>
 

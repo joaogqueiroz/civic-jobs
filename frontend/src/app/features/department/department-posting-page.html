@@ -1,0 +1,121 @@
+<a mat-button routerLink="/department" class="back">
+  <mat-icon>arrow_back</mat-icon>
+  Department postings
+</a>
+
+@if (posting.isLoading() || busy()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Working" />
+}
+
+@if (current(); as p) {
+  <header class="page-header">
+    <h1 class="page-title">{{ p.title }}</h1>
+    <app-status-badge [status]="p.status" data-testid="status" />
+  </header>
+
+  <div class="layout">
+    <article class="panel details" aria-labelledby="details-title">
+      <h2 id="details-title" class="section-title">Posting</h2>
+      <dl class="facts">
+        <div>
+          <dt class="small muted">Location</dt>
+          <dd>{{ p.location }}</dd>
+        </div>
+        <div>
+          <dt class="small muted">Type</dt>
+          <dd>{{ employmentTypeLabel(p.employmentType) }}</dd>
+        </div>
+        <div>
+          <dt class="small muted">Salary</dt>
+          <dd class="num">
+            {{ p.salaryMin | currency: 'USD' : 'symbol' : '1.0-0' }} –
+            {{ p.salaryMax | currency: 'USD' : 'symbol' : '1.0-0' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="small muted">Closes</dt>
+          <dd class="num">{{ p.closingDate | date: 'MMM d, y' : 'UTC' }}</dd>
+        </div>
+      </dl>
+      <p class="description">{{ p.description }}</p>
+    </article>
+
+    <aside class="panel actions" aria-labelledby="decision-title">
+      <h2 id="decision-title" class="section-title">Decision</h2>
+      @switch (p.status) {
+        @case ('PendingApproval') {
+          <p class="small muted">
+            Candidates can't see this posting yet. Approve it to open it, or send it back to the recruiter with a note.
+          </p>
+          <button mat-flat-button type="button" (click)="approve(p)" [disabled]="busy()">Approve and open</button>
+          <button mat-stroked-button type="button" (click)="reject(p)" [disabled]="busy()">Ask for changes</button>
+        }
+        @case ('Open') {
+          <p class="small muted">
+            Approved. Candidates can apply until
+            <span class="num">{{ p.closingDate | date: 'MMM d, y' : 'UTC' }}</span>.
+          </p>
+        }
+        @case ('Closed') {
+          <p class="small muted">Closed. No new applications, but you can still decide on the ones below.</p>
+        }
+      }
+    </aside>
+  </div>
+
+  @if (p.status !== 'PendingApproval') {
+    <section class="applications" aria-labelledby="applications-title">
+      <h2 id="applications-title" class="section-title">
+        Applications
+        @if (applications.hasValue()) {
+          <span class="count num">{{ applications.value().length }}</span>
+        }
+      </h2>
+
+      @if (applications.hasValue()) {
+        @if (applications.value().length === 0) {
+          <p class="empty">No applications yet.</p>
+        } @else {
+          <ul class="application-list" role="list">
+            @for (application of applications.value(); track application.id) {
+              <li class="panel application">
+                <div class="application-top">
+                  <div>
+                    <p class="candidate">{{ application.candidateName }}</p>
+                    <p class="small muted">
+                      <a [href]="'mailto:' + application.candidateEmail">{{ application.candidateEmail }}</a>
+                      · Applied <span class="num">{{ application.appliedAt | date: 'MMM d, y' }}</span>
+                    </p>
+                  </div>
+                  <app-status-badge [status]="application.status" />
+                </div>
+
+                @if (application.coverLetter) {
+                  <p class="cover-letter">{{ application.coverLetter }}</p>
+                } @else {
+                  <p class="small muted">No cover letter.</p>
+                }
+
+                @if (nextActions[application.status].length > 0) {
+                  <div class="application-actions">
+                    @for (action of nextActions[application.status]; track action.status) {
+                      @if (action.primary) {
+                        <button mat-flat-button type="button" (click)="decide(application, action)" [disabled]="busy()">
+                          {{ action.label }}
+                        </button>
+                      } @else {
+                        <button mat-button type="button" (click)="decide(application, action)" [disabled]="busy()">
+                          {{ action.label }}
+                        </button>
+                      }
+                    }
+                  </div>
+                }
+              </li>
+            }
+          </ul>
+        }
+      }
+    </section>
+  }
+}
